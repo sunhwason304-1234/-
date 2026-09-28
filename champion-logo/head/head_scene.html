@@ -1,0 +1,179 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+// CHAMPION park golf head mockup: D-shaped metal head with engraved top / back crest / carbon face.
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const q = new URLSearchParams(location.search);
+const SHOT = q.get('shot') || 'front';
+const W = +q.get('w') || 1600, H = +q.get('h') || 1200;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.92;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.02).texture;
+scene.environmentIntensity = 1.0;
+{
+  const c = document.createElement('canvas'); c.width = 16; c.height = 512;
+  const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 512);
+  gr.addColorStop(0, '#2b2a2d'); gr.addColorStop(.55, '#151416'); gr.addColorStop(1, '#070708');
+  g.fillStyle = gr; g.fillRect(0, 0, 16, 512);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; scene.background = t;
+}
+
+const loadImg = u => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = u; });
+const loadTex = u => new Promise(r => new THREE.TextureLoader().load(u, t => { t.colorSpace = THREE.SRGBColorSpace; r(t); }));
+
+const GOLD = new THREE.MeshPhysicalMaterial({ color: 0xd8b56a, metalness: 1, roughness: 0.24, clearcoat: .5 });
+
+// ---------- engraved plate textures built from black-on-white masks
+function plateMaps(img, variant, { carbon = false } = {}) {
+  const w = img.width, h = img.height;
+  const src = document.createElement('canvas'); src.width = w; src.height = h;
+  const sg = src.getContext('2d'); sg.drawImage(img, 0, 0);
+  const m = sg.getImageData(0, 0, w, h).data;
+  const mk = () => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const col = mk(), orm = mk(), bmp = mk();
+  const cg = col.getContext('2d'), og = orm.getContext('2d'), bg = bmp.getContext('2d');
+  const C = cg.createImageData(w, h), O = og.createImageData(w, h), B = bg.createImageData(w, h);
+  // brushed-metal streaks (horizontal)
+  const streak = new Float32Array(h);
+  for (let y = 0; y < h; y++) streak[y] = (Math.random() - .5) * 0.10 + Math.sin(y * 0.9) * 0.015;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4, e = 1 - m[i] / 255;          // e = engraved amount
+    let r, g, b, rough, metal;
+    if (carbon) {
+      const cell = ((Math.floor(x / 22) + Math.floor(y / 22)) & 1);
+      const t = cell ? (x % 22) / 22 : (y % 22) / 22;
+      const v = 8 + 16 * Math.pow(Math.sin(t * Math.PI), 2) + (cell ? 4 : 0);
+      [r, g, b] = [v, v, v + 1]; rough = .38; metal = 0;
+      if (e > .5) { [r, g, b] = [217, 175, 80]; rough = .25; metal = 1; }
+    } else if (variant === 'gold') {
+      const s = 1 + streak[y];
+      [r, g, b] = [214 * s, 184 * s, 118 * s]; rough = .26; metal = 1;
+      if (e > 0) { const k = e; r = r * (1 - k) + 92 * k; g = g * (1 - k) + 66 * k; b = b * (1 - k) + 24 * k; rough = .26 + .4 * k; }
+    } else { // black lacquer with gold-filled engraving
+      [r, g, b] = [14, 14, 15]; rough = .2; metal = 0;
+      if (e > 0) { const k = e; r = 14 + (220 - 14) * k; g = 14 + (176 - 14) * k; b = 15 + (82 - 15) * k; rough = .2 + .1 * k; metal = k; }
+    }
+    C.data.set([r, g, b, 255], i);
+    O.data.set([255, rough * 255, metal * 255, 255], i);
+    const bv = 255 - e * 255; B.data.set([bv, bv, bv, 255], i);
+  }
+  cg.putImageData(C, 0, 0); og.putImageData(O, 0, 0); bg.putImageData(B, 0, 0);
+  const map = new THREE.CanvasTexture(col); map.colorSpace = THREE.SRGBColorSpace;
+  const ormT = new THREE.CanvasTexture(orm), bumpT = new THREE.CanvasTexture(bmp);
+  for (const t of [map, ormT, bumpT]) t.anisotropy = 8;
+  return new THREE.MeshPhysicalMaterial({ map, roughnessMap: ormT, metalnessMap: ormT, roughness: 1, metalness: 1,
+    bumpMap: bumpT, bumpScale: 2.2, clearcoat: carbon ? .45 : variant === 'black' ? 1 : .3,
+    clearcoatRoughness: carbon ? .25 : .08, envMapIntensity: carbon ? .35 : 1 });
+}
+
+// ---------- geometry
+const HW = 72, HD = 88, HH = 52, DF = 18, BV = 1.5;
+function dShape(inset = 0) {
+  const s = new THREE.Shape(), w = HW / 2 - inset, top = HH - inset, yb = HH - DF;
+  s.moveTo(-w, top); s.lineTo(w, top); s.lineTo(w, yb);
+  s.absellipse(0, yb, w, yb - inset, 0, -Math.PI, true);
+  s.lineTo(-w, top);
+  return s;
+}
+function dPlate(mat, z, flip) {
+  const g = new THREE.ShapeGeometry(dShape(BV), 64);
+  const p = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < p.count; i++) uv.setXY(i, (p.getX(i) + HW / 2) / HW, p.getY(i) / HH);
+  const mesh = new THREE.Mesh(g, mat);
+  if (flip) mesh.rotation.y = Math.PI;
+  mesh.position.z = z; return mesh;
+}
+
+const imgs = {};
+async function head(variant) {
+  imgs.top ??= await loadImg('head_top.png');
+  imgs.back ??= await loadImg('head_back.png');
+  imgs.face ??= await loadImg('head_face.png');
+  const grp = new THREE.Group();
+  const bodyMat = variant === 'gold'
+    ? new THREE.MeshPhysicalMaterial({ color: 0xd6b878, metalness: 1, roughness: .3, clearcoat: .3 })
+    : new THREE.MeshPhysicalMaterial({ color: 0x0e0e0f, metalness: 0, roughness: .2, clearcoat: 1, clearcoatRoughness: .06 });
+  const bodyG = new THREE.ExtrudeGeometry(dShape(BV), { depth: HD - 2 * BV, bevelEnabled: true, bevelThickness: BV,
+    bevelSize: BV, bevelSegments: 4, curveSegments: 64 });
+  bodyG.translate(0, 0, -(HD - 2 * BV) / 2);
+  const body = new THREE.Mesh(bodyG, bodyMat); body.castShadow = true; grp.add(body);
+
+  // top plate (artwork top = back edge, reads upright from the face side)
+  const topMat = plateMaps(imgs.top, variant);
+  const top = new THREE.Mesh(new THREE.PlaneGeometry(HW - 2 * BV, HD - 2 * BV), topMat);
+  top.rotation.x = -Math.PI / 2; top.position.y = HH + 0.03; grp.add(top);
+
+  grp.add(dPlate(plateMaps(imgs.back, variant), -HD / 2 - 0.03, true));
+  grp.add(dPlate(plateMaps(imgs.face, variant, { carbon: true }), HD / 2 + 0.03, false));
+
+  // gold screws on the face
+  for (const [px, py] of [[9.5, 7.5], [62.5, 7.5], [15, 40], [57, 40]]) {
+    const s = new THREE.Mesh(new THREE.CylinderGeometry(2.1, 2.1, 0.8, 32), GOLD);
+    s.rotation.x = Math.PI / 2; s.position.set(px - HW / 2, HH - py, HD / 2 + 0.35); grp.add(s);
+    const slot = new THREE.Mesh(new THREE.BoxGeometry(3, .45, .3), new THREE.MeshStandardMaterial({ color: 0x3a2c10 }));
+    slot.position.set(px - HW / 2, HH - py, HD / 2 + 0.8); slot.rotation.z = .6; grp.add(slot);
+  }
+  // hosel at the back-heel corner of the top plate (panel 12.5, 12.5 -> world)
+  const hx = -HW / 2 + 12.5, hz = -HD / 2 + 12.5;
+  const hosel = new THREE.Mesh(new THREE.CylinderGeometry(6.6, 7.6, 30, 48), GOLD);
+  hosel.position.set(hx, HH + 15, hz); hosel.castShadow = true; grp.add(hosel);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(7.2, 7.2, 2.2, 48),
+    new THREE.MeshPhysicalMaterial({ color: 0x0c0c0c, roughness: .3, clearcoat: 1 }));
+  ring.position.set(hx, HH + 30.5, hz); grp.add(ring);
+  grp.userData = { hx, hz, top: HH + 31 };
+  return grp;
+}
+
+async function shaftStub(grp, dark, len = 420) {
+  const { hx, hz, top } = grp.userData;
+  const s = new THREE.Mesh(new THREE.CylinderGeometry(7, 6.3, len, 48),
+    new THREE.MeshPhysicalMaterial({ color: dark ? 0x0d0d0e : 0xf3f0e8, roughness: .28, clearcoat: 1, clearcoatRoughness: .08 }));
+  s.position.set(hx, top + len / 2, hz); s.castShadow = true; grp.add(s);
+}
+
+// ---------- lights
+const key = new THREE.DirectionalLight(0xfff2dc, 2.4); key.position.set(-500, 900, 700);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -300, right: 300, top: 300, bottom: -300, near: 10, far: 3000 });
+key.shadow.bias = -0.0005;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xffe0a8, 1.6); rim.position.set(600, 300, -600); scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffffff, .5); fill.position.set(400, 200, 600); scene.add(fill);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShadowMaterial({ opacity: .5 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+let camera;
+const cam = (fov, pos, look) => { camera = new THREE.PerspectiveCamera(fov, W / H, 5, 8000);
+  camera.position.set(...pos); camera.lookAt(...look); };
+
+if (SHOT === 'front') {            // 3/4 from the face side, looking down onto the top plate
+  const g = await head('gold'); await shaftStub(g, true); g.rotation.y = 0.42; scene.add(g);
+  cam(27, [-40, 230, 300], [0, 30, 0]);
+} else if (SHOT === 'back') {      // 3/4 from behind: top plate + back crest
+  const g = await head('gold'); await shaftStub(g, true); g.rotation.y = Math.PI + 0.5; scene.add(g);
+  cam(28, [-110, 170, 290], [0, 30, 0]);
+} else if (SHOT === 'top') {       // straight top view
+  const g = await head('gold'); await shaftStub(g, true, 90); scene.add(g);
+  scene.environmentIntensity = .6;
+  cam(19, [0, 470, 210], [0, 42, -4]);
+} else if (SHOT === 'pair') {      // gold + black variants
+  const a = await head('gold'); await shaftStub(a, true); a.position.x = -62; a.rotation.y = -0.45;
+  const b = await head('black'); await shaftStub(b, true); b.position.x = 62; b.rotation.y = -0.45;
+  scene.add(a, b);
+  cam(26, [60, 250, 420], [0, 38, 0]);
+}
+renderer.render(scene, camera);
+window.__done = true;
+</script></body></html>
