@@ -1,0 +1,179 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script>
+</head><body>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+const q = new URLSearchParams(location.search);
+const SHOT = q.get('shot') || 'hero';
+const W = +q.get('w') || 1600, H = +q.get('h') || 2000;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1);
+renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.03).texture;
+scene.environmentIntensity = 0.9;
+
+// backdrop gradient
+{
+  const c = document.createElement('canvas'); c.width = 16; c.height = 512;
+  const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 512);
+  gr.addColorStop(0, '#2a2a2e'); gr.addColorStop(.6, '#141416'); gr.addColorStop(1, '#070708');
+  g.fillStyle = gr; g.fillRect(0, 0, 16, 512);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  scene.background = t;
+}
+
+const loader = new THREE.TextureLoader();
+const load = (u, srgb = true) => new Promise(r => loader.load(u, t => {
+  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy(); r(t);
+}));
+
+const GOLD = new THREE.MeshPhysicalMaterial({ color: 0xd9ad4a, metalness: 1, roughness: 0.22, clearcoat: 0.6 });
+
+function gripTexture(dark) {
+  // fine diamond knurl pattern for the rubber grip
+  const c = document.createElement('canvas'); c.width = 256; c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = dark ? '#161616' : '#e9e4d8'; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = dark ? '#262626' : '#d6cfbf'; g.lineWidth = 3;
+  for (let i = -256; i < 512; i += 16) {
+    g.beginPath(); g.moveTo(i, 0); g.lineTo(i + 256, 256); g.stroke();
+    g.beginPath(); g.moveTo(i + 256, 0); g.lineTo(i, 256); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 22);
+  return t;
+}
+
+async function club(theme) {
+  const dark = theme === 'black_gold';
+  const [tex, mask, logo] = await Promise.all([
+    load(`tex_${theme}.png`), load(`mask_${theme}.png`, false), load('logo_gold.png')]);
+  const grp = new THREE.Group();
+  const base = new THREE.MeshPhysicalMaterial({
+    color: dark ? 0x0d0d0e : 0xf3f0e8, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.08 });
+
+  // ---- head (lacquered block, gold sole, gold logo on top)
+  const HW = 88, HH = 46, HD = 54, HR = 15;
+  const head = new THREE.Mesh(new RoundedBoxGeometry(HW, HH, HD, 8, HR), base);
+  head.position.y = HH / 2 + 3; head.castShadow = true; grp.add(head);
+  const sole = new THREE.Mesh(new RoundedBoxGeometry(HW - 6, 5, HD - 6, 4, 2.4), GOLD);
+  sole.position.y = 3; sole.castShadow = true; grp.add(sole);
+  // gold trim line around the head (rounded-rect ring)
+  const rr = (w, d, r) => { const sh = new THREE.Shape(), x = -w / 2, y = -d / 2;
+    sh.moveTo(x + r, y); sh.lineTo(x + w - r, y); sh.quadraticCurveTo(x + w, y, x + w, y + r);
+    sh.lineTo(x + w, y + d - r); sh.quadraticCurveTo(x + w, y + d, x + w - r, y + d);
+    sh.lineTo(x + r, y + d); sh.quadraticCurveTo(x, y + d, x, y + d - r);
+    sh.lineTo(x, y + r); sh.quadraticCurveTo(x, y, x + r, y); return sh; };
+  const trimShape = rr(HW + 0.8, HD + 0.8, HR + 0.4); trimShape.holes.push(rr(HW - 2, HD - 2, HR - 1));
+  const trim = new THREE.Mesh(new THREE.ExtrudeGeometry(trimShape, { depth: 2.4, bevelEnabled: false, curveSegments: 16 }), GOLD);
+  trim.rotation.x = -Math.PI / 2; trim.position.y = 3 + HH * 0.16; grp.add(trim);
+  // striking face insert
+  const face = new THREE.Mesh(new RoundedBoxGeometry(HW - 30, HH - 22, 2, 2, 0.8),
+    new THREE.MeshPhysicalMaterial({ color: dark ? 0x1b1b1c : 0xcfb67a, roughness: .35, metalness: dark ? .2 : .9 }));
+  face.position.set(0, HH / 2 + 7, HD / 2 - 0.3); grp.add(face);
+  const lm = new THREE.MeshPhysicalMaterial({ map: logo, transparent: true, metalness: 1, roughness: .25,
+    color: 0xffffff, alphaTest: 0.3 });
+  const lg = new THREE.Mesh(new THREE.PlaneGeometry(52, 52 * logo.image.height / logo.image.width), lm);
+  lg.rotation.x = -Math.PI / 2; lg.position.set(8, HH + 3.12, 12); grp.add(lg);
+
+  // ---- hosel
+  const hx = -24, hz = -10;
+  const hosel = new THREE.Mesh(new THREE.CylinderGeometry(7.2, 9, 26, 48), GOLD);
+  hosel.position.set(hx, HH + 3 + 10, hz); hosel.castShadow = true; grp.add(hosel);
+
+  // ---- shaft
+  const R = 7.0, y0 = HH + 20, yArt0 = 212 + 20, yTop = 620;
+  const lower = new THREE.Mesh(new THREE.CylinderGeometry(R, 6.3, yArt0 - y0, 64), base);
+  lower.position.set(hx, (y0 + yArt0) / 2, hz); lower.castShadow = true; grp.add(lower);
+  const span = 33.6 / R;                           // artwork wraps 33.6 mm of the circumference
+  const art = new THREE.Mesh(
+    new THREE.CylinderGeometry(R, R, yTop - yArt0, 128, 1, true, -span / 2, span),
+    new THREE.MeshPhysicalMaterial({ map: tex, metalnessMap: mask, metalness: 1, roughness: 0.26,
+      clearcoat: 1, clearcoatRoughness: 0.06 }));
+  const rest = new THREE.Mesh(
+    new THREE.CylinderGeometry(R - 0.01, R - 0.01, yTop - yArt0, 48, 1, true, span / 2, Math.PI * 2 - span), base);
+  for (const m of [art, rest]) { m.position.set(hx, (yArt0 + yTop) / 2, hz); m.castShadow = true; grp.add(m); }
+  // (artwork length 388 mm = yTop - yArt0)
+
+  // ---- grip
+  const gy0 = yTop, gy1 = yTop + 262;
+  const ferr = new THREE.Mesh(new THREE.CylinderGeometry(9.5, 7.6, 8, 48), GOLD);
+  ferr.position.set(hx, gy0 + 2, hz); grp.add(ferr);
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(13.2, 10.2, gy1 - gy0, 64),
+    new THREE.MeshPhysicalMaterial({ map: gripTexture(dark), roughness: .75, clearcoat: .15 }));
+  grip.position.set(hx, (gy0 + gy1) / 2 + 6, hz); grip.castShadow = true; grp.add(grip);
+  const ring = new THREE.Mesh(new THREE.CylinderGeometry(13.6, 13.6, 5, 48), GOLD);
+  ring.position.set(hx, gy1 + 4, hz); grp.add(ring);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(13.6, 48, 16, 0, Math.PI * 2, 0, Math.PI / 2.6),
+    new THREE.MeshPhysicalMaterial({ color: dark ? 0x111111 : 0xf1ede4, roughness: .3, clearcoat: 1 }));
+  cap.scale.y = 0.55; cap.position.set(hx, gy1 + 6.4, hz); grp.add(cap);
+
+  grp.userData = { hx, hz, logoY: yTop - (116 + 75) };
+  return grp;
+}
+
+// ---- lights
+const key = new THREE.DirectionalLight(0xfff4e0, 2.2);
+key.position.set(-600, 1400, 1200); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+Object.assign(key.shadow.camera, { left: -900, right: 900, top: 900, bottom: -900, near: 10, far: 4000 });
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xffe2b0, 1.4); rim.position.set(900, 600, -800); scene.add(rim);
+scene.add(new THREE.AmbientLight(0xffffff, 0.15));
+
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.ShadowMaterial({ opacity: 0.55 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+const A = await club('black_gold'), B = await club('white_gold');
+let camera;
+
+if (SHOT === 'hero') {
+  // two clubs standing, slightly leaning towards each other
+  A.position.set(-150, 0, 0); A.rotation.z = -0.05; A.rotation.y = 0.25;
+  B.position.set(150, 0, 0);  B.rotation.z = 0.05;  B.rotation.y = 0.25;
+  scene.add(A, B);
+  camera = new THREE.PerspectiveCamera(24, W / H, 10, 10000);
+  camera.position.set(0, 520, 2350); camera.lookAt(0, 455, 0);
+} else if (SHOT === 'close') {
+  // two shafts diagonal, close on the logo section
+  for (const [c, d] of [[A, 36], [B, -36]]) {
+    c.rotation.z = 2.02; c.rotation.y = 0.0;
+    c.rotation.order = 'ZYX';
+    c.position.set(-Math.cos(2.02) * d, -Math.sin(2.02) * d, 0);
+    scene.add(c);
+  }
+  scene.remove(floor);
+  const target = new THREE.Vector3(0, 0, 0);
+  // centre on the logo region of the club pair
+  A.updateMatrixWorld(); B.updateMatrixWorld();
+  const pa = A.localToWorld(new THREE.Vector3(A.userData.hx, A.userData.logoY - 20, A.userData.hz));
+  const pb = B.localToWorld(new THREE.Vector3(B.userData.hx, B.userData.logoY - 20, B.userData.hz));
+  target.addVectors(pa, pb).multiplyScalar(0.5);
+  camera = new THREE.PerspectiveCamera(22, W / H, 10, 10000);
+  camera.position.copy(target).add(new THREE.Vector3(0, 40, 620)); camera.lookAt(target);
+} else if (SHOT === 'head') {
+  A.position.set(-70, 0, 0); A.rotation.y = 0.55;
+  B.position.set(70, 0, -40); B.rotation.y = 0.35;
+  scene.add(A, B);
+  camera = new THREE.PerspectiveCamera(26, W / H, 10, 10000);
+  camera.position.set(40, 260, 520); camera.lookAt(0, 70, 0);
+}
+
+renderer.render(scene, camera);
+window.__done = true;
+</script></body></html>
