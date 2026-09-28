@@ -1,0 +1,207 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style>
+<script type="importmap">{"imports":{
+ "three":"./node_modules/three/build/three.module.js",
+ "three/addons/":"./node_modules/three/examples/jsm/",
+ "three-mesh-bvh":"./node_modules/three-mesh-bvh/build/index.module.js",
+ "three-bvh-csg":"./node_modules/three-bvh-csg/build/index.module.js"}}</script>
+</head><body>
+<script type="module">
+// CHAMPION park golf head v2 (Volvik-style): D profile x rounded-back plan (CSG),
+// engraved gold top cap over a walnut / black body, carbon face with gold pins.
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { Brush, Evaluator, INTERSECTION } from 'three-bvh-csg';
+import { plateMaps } from './plate_maps.js';
+
+const q = new URLSearchParams(location.search);
+const SHOT = q.get('shot') || 'front';
+const W = +q.get('w') || 1600, H = +q.get('h') || 1200;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(1); renderer.setSize(W, H);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.2;
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+// studio environment: dark floor, softboxes above and at the sides (no bright floor bounce)
+{
+  const env = new THREE.Scene();
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(100, 32, 16), new THREE.ShaderMaterial({ side: THREE.BackSide,
+    vertexShader: 'varying vec3 p; void main(){ p = position; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+    fragmentShader: 'varying vec3 p; void main(){ float t = clamp(normalize(p).y*.5+.5,0.,1.); gl_FragColor = vec4(vec3(mix(.015,.9,pow(t,2.2))),1.); }' }));
+  env.add(dome);
+  const box = (w, h, x, y, z, k) => { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+    new THREE.MeshBasicMaterial({ color: new THREE.Color(k, k * .96, k * .9), side: THREE.DoubleSide }));
+    m.position.set(x, y, z); m.lookAt(0, 0, 0); env.add(m); };
+  box(90, 50, 0, 80, 0, 9);        // overhead softbox
+  box(35, 80, -80, 25, 30, 7);     // key strip left
+  box(35, 80, 80, 20, -30, 6);     // rim strip right-back
+  box(60, 30, 0, 35, 85, 3.5);       // soft front fill
+  scene.environment = new THREE.PMREMGenerator(renderer).fromScene(env, 0.02).texture;
+}
+{
+  const c = document.createElement('canvas'); c.width = 16; c.height = 512;
+  const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 512);
+  gr.addColorStop(0, '#2c2a2b'); gr.addColorStop(.55, '#161415'); gr.addColorStop(1, '#070707');
+  g.fillStyle = gr; g.fillRect(0, 0, 16, 512);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; scene.background = t;
+}
+const loadImg = u => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = u; });
+
+// ---------- materials
+const GOLD = new THREE.MeshPhysicalMaterial({ color: 0xd8b66e, metalness: 1, roughness: .26, clearcoat: .4 });
+const GOLD_DARK = new THREE.MeshPhysicalMaterial({ color: 0x6a4e1c, metalness: 1, roughness: .5 });
+function woodMat() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
+  const g = c.getContext('2d');
+  g.fillStyle = '#3e2211'; g.fillRect(0, 0, 1024, 1024);
+  for (let i = 0; i < 260; i++) {                       // flowing grain lines
+    const y0 = Math.random() * 1024, amp = 4 + Math.random() * 14, f = .004 + Math.random() * .006;
+    const shade = Math.random();
+    g.strokeStyle = shade > .5 ? `rgba(30,14,6,${.25 + .35 * Math.random()})` : `rgba(140,82,44,${.12 + .2 * Math.random()})`;
+    g.lineWidth = .6 + Math.random() * 2.4;
+    g.beginPath();
+    for (let x = 0; x <= 1024; x += 8) g.lineTo(x, y0 + Math.sin(x * f + i) * amp);
+    g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1 / 90, 1 / 90); t.anisotropy = 8;
+  return new THREE.MeshPhysicalMaterial({ map: t, roughness: .45, clearcoat: .6, clearcoatRoughness: .15, envMapIntensity: .3 });
+}
+const NOIR = new THREE.MeshPhysicalMaterial({ color: 0x0c0c0d, roughness: .3, clearcoat: .8, clearcoatRoughness: .08, envMapIntensity: .28 });
+
+// ---------- geometry (mm; y up, face at +z)
+const HW = 72, PW = 36.4, HD = 92, ARC = 42, HH = 52, FS = 36, CAP_Y = 35;   // FS: height of the D's straight part start (ellipse centre)
+function planShape() {                     // shape coords: x, y (world z = -y)
+  const s = new THREE.Shape();
+  s.moveTo(-PW, -HD / 2); s.lineTo(PW, -HD / 2); s.lineTo(PW, HD / 2 - ARC);
+  s.absellipse(0, HD / 2 - ARC, PW, ARC, 0, Math.PI, false);
+  s.lineTo(-PW, -HD / 2); return s;
+}
+function dShape(w = HW / 2, top = 70, inset = 0) {   // face profile in world x, y
+  const s = new THREE.Shape();
+  s.moveTo(-w + inset, top); s.lineTo(w - inset, top); s.lineTo(w - inset, FS);
+  s.absellipse(0, FS, w - inset, FS - inset, 0, -Math.PI, true); s.lineTo(-w + inset, top); return s;
+}
+const ev = new Evaluator(); ev.useGroups = true;
+function brushPlan(mats) {
+  const g = new THREE.ExtrudeGeometry(planShape(), { depth: HH, bevelEnabled: false, curveSegments: 96 });
+  g.rotateX(-Math.PI / 2);
+  const b = new Brush(g, mats); b.updateMatrixWorld(); return b;
+}
+function brushD(mat) {
+  const g = new THREE.ExtrudeGeometry(dShape(), { depth: 140, bevelEnabled: false, curveSegments: 96 });
+  g.translate(0, 0, -70);
+  const b = new Brush(g, [mat, mat]); b.updateMatrixWorld(); return b;
+}
+function brushSide(mat, R = 34, RY = 30) {   // side profile (z, y): rounded back-bottom -> bullet-like back
+  const sh = new THREE.Shape(), zb = -HD / 2;
+  sh.moveTo(80, -10); sh.lineTo(80, 90); sh.lineTo(zb - 5, 90); sh.lineTo(zb - 5, RY);
+  sh.lineTo(zb, RY); sh.absellipse(zb + R, RY, R, RY, Math.PI, Math.PI * 1.5, false);
+  sh.lineTo(80, 0); sh.lineTo(80, -10);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: 200, bevelEnabled: false, curveSegments: 64 });
+  g.translate(0, 0, -100); g.rotateY(-Math.PI / 2);
+  const b = new Brush(g, [mat, mat]); b.updateMatrixWorld(); return b;
+}
+function slab(y0, y1, mat) {
+  const b = new Brush(new THREE.BoxGeometry(200, y1 - y0, 200), mat);
+  b.position.y = (y0 + y1) / 2; b.updateMatrixWorld(); return b;
+}
+function cut(mats, dMat, y0, y1, sMat) {
+  const body = ev.evaluate(ev.evaluate(brushPlan(mats), brushD(dMat), INTERSECTION), brushSide(dMat), INTERSECTION);
+  const m = ev.evaluate(body, slab(y0, y1, sMat), INTERSECTION);
+  m.castShadow = true; return m;
+}
+
+const imgs = {};
+async function head(variant) {
+  imgs.top ??= await loadImg('h2_top.png');
+  imgs.face ??= await loadImg('h2_face.png');
+  const grp = new THREE.Group();
+  const body = variant === 'walnut' ? woodMat() : NOIR;
+
+  // engraved top cap
+  const topMat = plateMaps(imgs.top, 'gold');
+  for (const t of [topMat.map, topMat.roughnessMap, topMat.bumpMap]) {
+    t.repeat.set(1 / (2 * PW), 1 / HD); t.offset.set(.5, .5);
+  }
+  topMat.bumpScale = 1.6;
+  grp.add(cut([topMat, GOLD], GOLD, CAP_Y, 80, GOLD));
+  // engraved seam line between cap and body
+  const seam = cut([GOLD_DARK, GOLD_DARK], GOLD_DARK, CAP_Y - .5, CAP_Y + .3, GOLD_DARK);
+  seam.scale.set(.994, 1, .994); grp.add(seam);   // recessed groove
+  // body
+  const bm = cut([body, body], body, -10, CAP_Y - .5, body);
+  {  // re-project UVs so the wood grain runs horizontally along the head
+    const p = bm.geometry.attributes.position, uv = bm.geometry.attributes.uv;
+    for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) * .6 + p.getZ(i), p.getY(i) * 2.2);
+    uv.needsUpdate = true;
+  }
+  grp.add(bm);
+
+  // carbon face with gold ring + 10 gold pins
+  const fg = new THREE.ShapeGeometry(dShape(HW / 2, HH - .5, .5), 96);
+  const p = fg.attributes.position, uv = fg.attributes.uv;
+  for (let i = 0; i < p.count; i++) uv.setXY(i, (p.getX(i) + HW / 2) / HW, p.getY(i) / HH);
+  const face = new THREE.Mesh(fg, plateMaps(imgs.face, 'gold', { carbon: true }));
+  face.position.z = HD / 2 + .04; grp.add(face);
+  const pins = [[18, 4.8], [36, 4.8], [54, 4.8], [4.8, 15], [67.2, 15], [64.93, 27.69], [53.45, 41.87],
+                [36, 47.2], [18.55, 41.87], [7.07, 27.69]];
+  for (const [px, py] of pins) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(1.35, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), GOLD);
+    s.rotation.x = Math.PI / 2; s.scale.y = .45; s.position.set(px - HW / 2, HH - py, HD / 2 + .05); grp.add(s);
+  }
+
+  // hosel rising from the centre of the laurel wreath (art 36,22 -> world 0, z=-24)
+  const hz = -HD / 2 + 22;
+  const hosel = new THREE.Mesh(new THREE.CylinderGeometry(7.0, 8.9, 26, 64), GOLD);
+  hosel.position.set(0, HH + 13, hz); hosel.castShadow = true; grp.add(hosel);
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(7.1, 7.1, 2, 64), NOIR);
+  band.position.set(0, HH + 26.5, hz); grp.add(band);
+  grp.userData = { hz, top: HH + 27.5 };
+  return grp;
+}
+function shaft(grp, len = 400) {
+  const s = new THREE.Mesh(new THREE.CylinderGeometry(6.9, 6.4, len, 48), NOIR);
+  s.position.set(0, grp.userData.top + len / 2, grp.userData.hz); s.castShadow = true; grp.add(s);
+}
+
+// ---------- lights
+const key = new THREE.DirectionalLight(0xfff0d8, 2.3); key.position.set(-500, 900, 700);
+key.castShadow = true; key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0005;
+Object.assign(key.shadow.camera, { left: -300, right: 300, top: 300, bottom: -300, near: 10, far: 3000 });
+scene.add(key);
+const rim = new THREE.DirectionalLight(0xffdca0, 1.8); rim.position.set(600, 300, -600); scene.add(rim);
+const fill = new THREE.DirectionalLight(0xffffff, .45); fill.position.set(400, 150, 600); scene.add(fill);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), new THREE.ShadowMaterial({ opacity: .5 }));
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+
+let camera;
+const cam = (fov, pos, look) => { camera = new THREE.PerspectiveCamera(fov, W / H, 5, 8000);
+  camera.position.set(...pos); camera.lookAt(...look); };
+const V = q.get('v') || 'walnut';
+
+if (SHOT === 'side') {           // toe side, low: rounded back + wood body
+  const g = await head(V); shaft(g); g.rotation.y = -Math.PI / 2 - 0.55; scene.add(g);
+  cam(24, [0, 120, 340], [0, 28, 0]);
+} else if (SHOT === 'front') {          // like the reference: face on the right, top + toe curve visible
+  const g = await head(V); shaft(g); g.rotation.y = -1.1; scene.add(g);
+  cam(25, [90, 150, 320], [0, 30, 0]);
+} else if (SHOT === 'face') {     // 3/4 on the carbon face
+  const g = await head(V); shaft(g); g.rotation.y = 0.5; scene.add(g);
+  cam(25, [-40, 150, 330], [0, 28, 0]);
+} else if (SHOT === 'top') {
+  const g = await head(V); shaft(g, 120); scene.add(g);
+  cam(19, [0, 470, 230], [0, 44, -2]);
+} else if (SHOT === 'pair') {
+  const a = await head('walnut'); shaft(a); a.position.x = -64; a.rotation.y = -0.9;
+  const b = await head('noir');   shaft(b); b.position.x = 64;  b.rotation.y = -0.9;
+  scene.add(a, b);
+  cam(27, [60, 250, 440], [0, 34, 0]);
+}
+renderer.render(scene, camera);
+window.__done = true;
+</script></body></html>
