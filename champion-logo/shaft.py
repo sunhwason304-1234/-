@@ -246,7 +246,12 @@ def artwork(theme, guides=True):
     T = THEMES[theme]
     el = []
     # base + carbon weave
-    el.append(f'<rect width="{W}" height="{H}" fill="url(#carbon)"/>')
+    # (drawn as real squares, not an SVG pattern, so Illustrator / print shows no tile seams)
+    el.append(f'<rect width="{W}" height="{H}" fill="{T["bg"]}"/>')
+    cell = 0.8
+    sq = "".join(f"M{c * cell:.1f},{r * cell:.1f}h{cell}v{cell}h-{cell}z"
+                 for r in range(int(H / cell)) for c in range(int(W / cell) + 1) if (r + c) % 2 == 0)
+    el.append(f'<path d="{sq}" fill="{T["weave"]}"/>')
     # edge pinstripes
     for x in (1.3, W - 1.3 - 0.25):
         el.append(f'<rect x="{x}" y="10" width=".25" height="{H - 20}" fill="{T["gold"]}"/>')
@@ -309,7 +314,7 @@ def artwork(theme, guides=True):
 
     guide = (f'<rect x="0" y="0" width="{W}" height="{H}" fill="none" stroke="#FF00FF" '
              f'stroke-width=".15" stroke-dasharray="1 .6"/>') if guides else ""
-    defs = GOLD + carbon(T["bg"], T["weave"])
+    defs = GOLD
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}mm" height="{H}mm" '
             f'viewBox="0 0 {W} {H}"><defs>{defs}</defs>{"".join(el)}{guide}</svg>')
 
