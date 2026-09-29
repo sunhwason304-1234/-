@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<defs><linearGradient id="champ" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#E3CD98"/><stop offset=".6" stop-color="#B8995A"/><stop offset="1" stop-color="#8C7038"/>
+</linearGradient></defs>
+
+<rect width="512" height="512" fill="#15181B"/>
+<rect x="28" y="28" width="456" height="456" fill="none" stroke="#B8995A" stroke-width="1.5" opacity=".6"/>
+<g transform="translate(166 90) scale(1.6)"><g>
+  <rect x="20" y="10" width="7" height="44" rx="2" fill="#F5F1E8"/>
+  <path d="M21.5 54 h4 l-0.8 128 h-2.4z" fill="#F5F1E8"/>
+  <path d="M8 182 h40 a8 8 0 0 1 0 16 h-40 a6 6 0 0 1 -6 -6 v-4 a6 6 0 0 1 6 -6z" fill="#F5F1E8"/>
+  <circle cx="68" cy="52" r="42" fill="url(#champ)"/>
+  <path d="M36 52 a32 32 0 0 1 32 -32" fill="none" stroke="#FFFFFF" stroke-opacity=".35" stroke-width="2"/>
+</g></g>
+</svg>

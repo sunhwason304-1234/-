@@ -21,3 +21,20 @@ PNG는 2배 해상도로 렌더링되었습니다. 인쇄에는 SVG를 사용하
 
 ## 재생성
 `build.py`로 색상·문구를 수정해 다시 만들 수 있습니다 (`pip install fonttools`, `@fontsource/montserrat`, `@fontsource/black-han-sans`, `@fontsource/oswald` 폰트 패키지 필요, `FONT_DIR`로 경로 지정).
+
+---
+
+# V2 – 미니멀 럭셔리 (`v2/`)
+
+**가는 샤프트 + 공 = P.** 선 하나와 원 하나만으로 만든 모노그램입니다.
+
+- **컬러**: 잉크 블랙 `#15181B`, 샴페인 골드 `#B8995A → #E3CD98`, 크림 `#F5F1E8`
+- **서체**: Cormorant Garamond (영문 세리프, 넓은 자간), 나눔명조 (한글), Montserrat (태그라인)
+
+| 파일 | 용도 |
+|---|---|
+| `parknara-v2-logo(-dark)` | 가로형 |
+| `parknara-v2-stacked(-dark)` | 세로형 – 패키지, 카탈로그 표지 |
+| `parknara-v2-symbol` | 심볼 – 샤프트 각인, SNS 프로필 |
+
+재생성: `FONT_DIR=... python3 v2/build_v2.py` (추가 폰트 `@fontsource/cormorant-garamond`, `@fontsource/nanum-myeongjo`)
