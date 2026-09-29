@@ -88,7 +88,7 @@ def pattern(P, keep_out):
     allowed = inset(P, 2.6).difference(keep_out)
     geo = unary_union(tiles).intersection(allowed)
     polys = getattr(geo, "geoms", [geo])
-    return unary_union([p for p in polys if p.area > .35])
+    return unary_union([p for p in polys if p.area > .8])
 
 
 def frange(a, b, s):
@@ -115,7 +115,7 @@ def panel():
     ros_pts = [(12.5, 50), (W - 12.5, 50), (22.5, 67.5), (W - 22.5, 67.5), (CX, 70.5), (21, 27), (W - 21, 27)]
     ros = [rosette(c, 4.4 if i < 5 else 3.6) for i, c in enumerate(ros_pts)]
     g += ros
-    keep = unary_union([B.buffer(2.0), Point(BADGE_C).buffer(18.6).difference(Point(BADGE_C).buffer(16.4)),
+    keep = unary_union([B.buffer(2.0), Point(BADGE_C).buffer(18.8),
                         *[Point(c).buffer(5.3 if i < 5 else 4.5) for i, c in enumerate(ros_pts)],
                         dome_zone.buffer(.6)])
     g.append(pattern(P, keep))
