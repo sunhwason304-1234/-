@@ -38,3 +38,11 @@ PNG는 2배 해상도로 렌더링되었습니다. 인쇄에는 SVG를 사용하
 | `parknara-v2-symbol` | 심볼 – 샤프트 각인, SNS 프로필 |
 
 재생성: `FONT_DIR=... python3 v2/build_v2.py` (추가 폰트 `@fontsource/cormorant-garamond`, `@fontsource/nanum-myeongjo`)
+
+---
+
+# Illustrator (.ai) 파일
+
+- `ai/` : V1 로고 6종, `v2/ai/` : V2 로고 5종
+- PDF 호환 AI 형식입니다. Illustrator에서 **파일 → 열기**로 바로 열리며 모든 요소가 벡터(패스)입니다. 글자도 아웃라인 처리되어 폰트가 필요 없습니다.
+- 색상 모드는 RGB입니다. 인쇄 발주 시 Illustrator에서 **파일 → 문서 색상 모드 → CMYK**로 변환하세요.
