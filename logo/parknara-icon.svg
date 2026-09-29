@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+<defs>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#F2D27A"/><stop offset=".55" stop-color="#D4A83A"/><stop offset="1" stop-color="#9C7420"/>
+  </linearGradient>
+  <linearGradient id="shaft" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#8FA79B"/><stop offset=".45" stop-color="#FFFFFF"/><stop offset="1" stop-color="#8FA79B"/>
+  </linearGradient>
+</defs>
+
+<rect width="512" height="512" rx="112" fill="#0E3B2C"/>
+<rect x="14" y="14" width="484" height="484" rx="100" fill="none" stroke="url(#gold)" stroke-width="4" opacity=".7"/>
+<g transform="translate(62 50) scale(2)"><g transform="skewX(-8) translate(18 0)">
+  <!-- grip -->
+  <path d="M63 16 h20 a5 5 0 0 1 5 5 v58 l-3 5 h-24 l-3 -5 v-58 a5 5 0 0 1 5 -5z" fill="#FFFFFF"/>
+  <path d="M60 28 l26 -6 M60 40 l26 -6 M60 52 l26 -6 M60 64 l26 -6 M60 76 l26 -6" stroke="#0E3B2C" stroke-width="2.2" opacity=".3"/>
+  <!-- shaft (tapered) -->
+  <path d="M65 84 h16 l-3 78 h-10z" fill="url(#shaft)"/>
+  <!-- club head -->
+  <path d="M50 158 h58 c10 0 16 4 18 10 l2 8 c1 6 -3 10 -10 10 h-66 c-6 0 -9 -4 -9 -10 v-6 c0 -8 3 -12 7 -12z" fill="#FFFFFF"/>
+  <path d="M58 180 h56" stroke="#D4A83A" stroke-width="3" stroke-linecap="round"/>
+  <!-- swing arc = P bowl -->
+  <path d="M96 30 H122 A48 48 0 0 1 122 126 H96" fill="none" stroke="url(#gold)" stroke-width="18" stroke-linecap="butt"/>
+  <!-- ball -->
+  <circle cx="122" cy="78" r="15" fill="#FFFFFF" stroke="#D4A83A" stroke-width="3"/>
+  <g fill="#D4A83A" opacity=".45"><circle cx="116" cy="73" r="2"/><circle cx="125" cy="71" r="2"/><circle cx="120" cy="81" r="2"/><circle cx="129" cy="79" r="2"/><circle cx="124" cy="88" r="1.8"/></g>
+</g></g>
+</svg>
