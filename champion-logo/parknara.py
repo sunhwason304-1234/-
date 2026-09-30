@@ -2,8 +2,7 @@
 
 crown_mark : the reference crown (diamond centre, teardrop finials) slightly modified -
              a star finial on the centre point (champion), inner jewel in the diamond, dotted band.
-pn_symbol  : hole-green symbol built from the maker's "IS" - the I is the flag pin standing
-             in the hole, the S is the fairway winding up to the green, inside a ring.
+pn_symbol  : hole-green symbol - flagstick standing in the hole on the green, rolling hills, ball.
 Running this file writes the ParkNara logo sheet (SVG / AI / PNG) into parknara/.
 """
 import math
@@ -71,21 +70,25 @@ def crown_mark(cx, top, w):
 
 
 def pn_symbol(cx, cy, r):
-    """ParkNara hole-green symbol: ring, S fairway, I flag pin in the hole."""
+    """ParkNara hole-green symbol: ring, rolling hills, green with the hole, flagstick, ball."""
     ring = outline(Point(cx, cy).buffer(r, quad_segs=64), r * .085)
     inner = Point(cx, cy).buffer(r * .83, quad_segs=64)
     P = lambda x, y: (cx + x * r, cy + y * r)
-    # S fairway: a clean, even-width "S" rising from the tee (bottom-left) into the green (top)
-    seg1 = bezier(P(-.50, .56), P(.48, .74), P(.52, .10), P(.0, .08), 50)
-    seg2 = bezier(P(.0, .08), P(-.52, .06), P(-.46, -.44), P(.10, -.40), 50)
-    fair = ribbon(seg1 + seg2[1:], r * .19, r * .19)
-    green = affinity.scale(Point(P(.22, -.40)).buffer(r * .2, quad_segs=32), 1.45, .6)
-    hole = affinity.scale(Point(P(.30, -.40)).buffer(r * .055, quad_segs=16), 1.4, .7)
-    pin = box(P(.285, -.80)[0], P(.285, -.80)[1], P(.33, -.41)[0], P(.33, -.41)[1])   # the "I"
-    flag = Polygon([P(.33, -.80), P(.60, -.69), P(.33, -.58)])
-    ball = Point(P(-.47, .56)).buffer(r * .075, quad_segs=16)
-    course = unary_union([fair, green]).intersection(inner).difference(hole).difference(ball.buffer(r * .045))
-    g = unary_union([ring, course, pin, flag, ball])
+    # two rolling hills filling the lower part of the circle
+    hill1 = Polygon(bezier(P(-1, .30), P(-.45, .02), P(.15, .10), P(1, .38), 40) + [P(1, 1.2), P(-1, 1.2)])
+    hill2 = Polygon(bezier(P(-1, .58), P(-.3, .44), P(.4, .46), P(1, .66), 40) + [P(1, 1.2), P(-1, 1.2)])
+    gap = LineString(bezier(P(-1, .58), P(-.3, .44), P(.4, .46), P(1, .66), 40)).buffer(r * .045)
+    hills = unary_union([hill1, hill2]).difference(gap)
+    # the green: an ellipse sitting on the first hill, with the hole cut out
+    green = affinity.scale(Point(P(.08, .2)).buffer(r * .36, quad_segs=40), 1.0, .3)
+    hole = affinity.scale(Point(P(.08, .2)).buffer(r * .085, quad_segs=20), 1.0, .5)
+    # flagstick rising from the hole, waving pennant
+    pin = box(P(.065, -.66)[0], P(.065, -.66)[1], P(.10, .19)[0], P(.10, .19)[1])
+    flag = Polygon([P(.10, -.66)] + bezier(P(.10, -.66), P(.30, -.70), P(.40, -.56), P(.56, -.60), 16)[1:]
+                   + bezier(P(.56, -.60), P(.44, -.46), P(.30, -.42), P(.10, -.38), 16)[1:])
+    ball = Point(P(-.44, .02)).buffer(r * .075, quad_segs=16)
+    scene = unary_union([hills.difference(green.buffer(r * .06)), green.difference(hole)]).intersection(inner)
+    g = unary_union([ring, scene, pin, flag, ball])
     return g
 
 
