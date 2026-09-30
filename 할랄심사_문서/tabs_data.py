@@ -2,6 +2,7 @@
 
 COMPANY = "주약석원농업회사법인"
 MANUAL = "YSW-100"
+SPINE_COMPANY = "채움에프앤비\n농업회사법인 주식회사"  # 등표지 아래 띠
 CERT_BODY = "한국할랄인증원(KHA)"
 KEEPER = "관리팀"
 

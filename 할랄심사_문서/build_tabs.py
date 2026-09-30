@@ -7,7 +7,7 @@ from pathlib import Path
 from hwpx import HwpxDocument
 from PIL import Image, ImageDraw, ImageFont
 
-from tabs_data import CERT_BODY, COMPANY, KEEPER, MANUAL, TABS
+from tabs_data import CERT_BODY, COMPANY, KEEPER, MANUAL, SPINE_COMPANY, TABS
 
 HERE = Path(__file__).parent
 IMG = HERE / "images"
@@ -39,20 +39,22 @@ def spine_image():
             bx0, by0, bx1, by1 = box
             while True:  # 상자에 들어갈 때까지 글자 크기를 줄인다
                 f = ImageFont.truetype(FD + ("NanumSquareB.ttf" if bold else "NanumGothic.ttf"), size)
-                bb = f.getbbox(text)
-                tw, th = bb[2] - bb[0], bb[3] - bb[1]
+                bb = ImageDraw.Draw(Image.new("L", (1, 1))).multiline_textbbox(
+                    (0, 0), text, font=f, spacing=size // 4, align="center")
+                tw, th = int(bb[2] - bb[0]), int(bb[3] - bb[1])
                 if (tw <= (by1 - by0) * 0.9 and th <= (bx1 - bx0) * 0.8) or size < 12:
                     break
                 size -= 4
             t = Image.new("RGBA", (tw + 20, th + 20), (0, 0, 0, 0))
-            ImageDraw.Draw(t).text((10 - bb[0], 10 - bb[1]), text, font=f, fill=color)
+            ImageDraw.Draw(t).multiline_text((10 - bb[0], 10 - bb[1]), text, font=f, fill=color,
+                                             spacing=size // 4, align="center")
             t = t.rotate(-90, expand=True)
             im.paste(t, (int((bx0 + bx1 - t.width) / 2), int((by0 + by1 - t.height) / 2)), t)
         s = min(w * px * 0.55, 190)
         vtext("HALAL", int(s), (x0, 20, x1, 45 * px), "white")
         vtext("할랄 보증시스템 심사 바인더", int(s * 0.7), (x0, 47 * px, x1, 165 * px), INK)
         vtext(f"{MANUAL} · 관리본", int(s * 0.45), (x0, 165 * px, x1, 198 * px), MUTED, bold=False)
-        vtext(COMPANY if w > 30 else "약석원", int(s * 0.6), (x0, 200 * px, x1, H * px - 20), "white")
+        vtext(SPINE_COMPANY, int(s * 0.6), (x0, 200 * px, x1, H * px - 20), "white")
         x += w + 25
     im.save(IMG / "20_등표지.png", optimize=True)
 
