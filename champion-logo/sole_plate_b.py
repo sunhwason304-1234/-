@@ -82,11 +82,13 @@ def panel():
     engraved = unary_union(g).intersection(inset(P, .3)).difference(B.buffer(1.4))
     engraved = unary_union([engraved, outline(B.buffer(1.0), .3)])
     # badge contents (gold on black enamel)
-    cr, ch = crown_mark(cx, cy - 8.9, 8.8)
-    mark = pn_symbol(cx, cy + 3.3, 4.1)
+    cr, ch = crown_mark(cx, cy - 9.9, 9.4)
     inner = outline(B.buffer(-1.0, join_style="round"), .28)
-    gold = unary_union([cr, mark, inner])
-    t_badge = ""
+    rule = unary_union([box(cx - 4.8, cy + 3.75, cx + 4.8, cy + 3.9)])
+    gold = unary_union([cr, inner, rule])
+    t_kr, _ = text(SERIF_KR, "파크나라", 2.6, cx, cy + 2.7, .3)
+    t_en, _ = text(SANS, "PARK NARA", .85, cx, cy + 5.5, .32)
+    t_badge = t_kr + t_en
     t1, _ = text(SERIF_KR, "CHAMPION", 5.0, CX, 55.6, .8)
     t2, _ = text(SANS, "MADE IN KOREA", 1.8, CX, 59.4, .8)
     t3, _ = text(SANS, "PREMIUM", 1.5, CX, 67.4, 1.0)
