@@ -61,20 +61,37 @@ def cell_write(table, r, c, text, *, bold=False, color=INK, size=9.5, align="lef
         q = cell.add_paragraph("")
         q.add_run(ln, bold=bold, color=color, size=size, font=FONT)
         paras.append(q)
-    fmt(paragraphs=paras, alignment=align, line_spacing_percent=130)
+    fmt(paragraphs=paras, alignment=align, line_spacing_percent=ROOMY.get("ls", 130))
     if fill:
         table.set_cell_shading(r, c, fill)
+    if ROOMY:
+        # 셀 안쪽 여백을 넓히고 세로 가운데 정렬
+        cell.set_margins(left=int(2.2 * MM), right=int(2.2 * MM), top=int(1.6 * MM), bottom=int(1.6 * MM))
+        sub = cell.element.find("{http://www.hancom.co.kr/hwpml/2011/paragraph}subList")
+        if sub is not None:
+            sub.set("vertAlign", "CENTER")
 
 
-def make_table(header, rows, weights, *, header_fill=GREEN, center_cols=()):
+ROOMY = getattr(_c, "ROOMY", {})
+
+
+def make_table(header, rows, weights, *, header_fill=GREEN, center_cols=(), opts=None):
+    opts = opts or {}
+    body_size = ROOMY.get("size", 9.5)
+    center_cols = set(center_cols) | set(opts.get("center", ()))
     t = doc.add_table(len(rows) + 1, len(header), width=int(BODY_MM * MM))
     t.set_column_widths(weights)
     for c, h in enumerate(header):
-        cell_write(t, 0, c, h, bold=True, color="#FFFFFF", size=10, align="center", fill=header_fill)
+        cell_write(t, 0, c, h, bold=True, color="#FFFFFF", size=body_size + 0.5, align="center", fill=header_fill)
+        if ROOMY:
+            t.cell(0, c).set_size(height=int(ROOMY.get("head_h", 9) * MM))
     for r, row in enumerate(rows, start=1):
         for c, v in enumerate(row):
-            cell_write(t, r, c, v, align="center" if c in center_cols else "left",
+            cell_write(t, r, c, v, size=body_size, align="center" if c in center_cols else "left",
                        fill="#FAFAFA" if r % 2 == 0 else None)
+            row_h = opts.get("row_h", ROOMY.get("row_h"))
+            if row_h:
+                t.cell(r, c).set_size(height=int(row_h * MM))
     if len(rows) > 8:
         t.set_treat_as_char(False)
     para("", size=4)
@@ -164,7 +181,7 @@ for blk in BLOCKS:
     elif kind == "check":
         check_table(blk[1])
     elif kind == "table":
-        make_table(blk[1], blk[2], blk[3])
+        make_table(blk[1], blk[2], blk[3], opts=blk[4] if len(blk) > 4 else None)
     elif kind == "img":
         image(blk[1], blk[2], blk[3])
 

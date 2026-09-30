@@ -33,11 +33,22 @@ def img_tag(name, width_mm):
     return f'<img src="data:image/png;base64,{data}" style="width:{width_mm}mm">'
 
 
-def table(header, rows, weights, cls=""):
+ROOMY = getattr(_c, "ROOMY", {})
+
+
+def table(header, rows, weights, cls="", opts=None):
+    opts = opts or {}
     tot = sum(weights)
     cols = "".join(f'<col style="width:{w / tot * 100:.1f}%">' for w in weights)
     th = "".join(f"<th>{e(h)}</th>" for h in header)
-    body = "".join("<tr>" + "".join(f"<td>{e(c)}</td>" for c in r) + "</tr>" for r in rows)
+    row_h = opts.get("row_h", ROOMY.get("row_h"))
+    center = set(opts.get("center", ()))
+    def td(i, c):
+        st = (f"height:{row_h}mm;" if row_h else "") + ("text-align:center;" if i in center else "")
+        return f'<td style="{st}">{e(c)}</td>'
+    body = "".join("<tr>" + "".join(td(i, c) for i, c in enumerate(r)) + "</tr>" for r in rows)
+    if ROOMY:
+        cls += " roomy"
     return f'<table class="{cls}"><colgroup>{cols}</colgroup><thead><tr>{th}</tr></thead><tbody>{body}</tbody></table>'
 
 
@@ -60,7 +71,7 @@ for b in BLOCKS:
                      '<col style="width:62%"><col style="width:24%"></colgroup>'
                      f'<thead><tr><th>확인</th><th>등급</th><th>점검 항목</th><th>증빙·비고</th></tr></thead><tbody>{rows}</tbody></table>')
     elif k == "table":
-        parts.append(table(b[1], b[2], b[3]))
+        parts.append(table(b[1], b[2], b[3], opts=b[4] if len(b) > 4 else None))
     elif k == "img":
         parts.append(f'<figure>{img_tag(b[1], b[3])}<figcaption>{e(b[2])}</figcaption></figure>')
 
@@ -89,6 +100,8 @@ td.ev { color:#616161; font-size:8.8pt; }
 td.g-must { background:#FFEBEE !important; color:#C62828; font-weight:bold; }
 td.g-imp { background:#FFF3E0 !important; color:#E65100; font-weight:bold; }
 td.g-rec { background:#E8F5E9 !important; color:#2E7D32; font-weight:bold; }
+table.roomy td { padding:2.2mm 2.6mm; font-size:10.3pt; white-space:pre-wrap; }
+table.roomy th { padding:2.4mm; font-size:10.5pt; }
 .toc td:first-child { text-align:center; }
 .note { display:flex; margin:3mm 0; border-radius:2mm; overflow:hidden; break-inside:avoid; }
 .note b { color:#fff; min-width:16mm; display:flex; align-items:center; justify-content:center; }
