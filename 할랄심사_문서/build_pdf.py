@@ -4,11 +4,20 @@ import html
 import subprocess
 from pathlib import Path
 
-from content import BLOCKS, SUBTITLE, TITLE
+import importlib
+import os
+
+_c = importlib.import_module(os.environ.get("CONTENT", "content"))
+BLOCKS, TITLE, SUBTITLE = _c.BLOCKS, _c.TITLE, _c.SUBTITLE
+OUT_BASE = getattr(_c, "OUT_NAME", "할랄인증_현장심사_준비가이드")
+COVER_IMG = getattr(_c, "COVER_IMG", "02_창고배치도.png")
+COVER_ROWS = getattr(_c, "COVER_ROWS", ["회사명", "대상 공장 / 제품", "인증기관 / 심사 예정일", "작성자 / 작성일"])
+COVER_TAG = getattr(_c, "COVER_TAG", "HALAL CERTIFICATION · ON-SITE AUDIT")
+FOOTER = getattr(_c, "FOOTER", "할랄인증 현장심사 준비 가이드")
 
 HERE = Path(__file__).parent
 IMG = HERE / "images"
-OUT = HERE / "할랄인증_현장심사_준비가이드.pdf"
+OUT = HERE / f"{OUT_BASE}.pdf"
 CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome"
 
 GRADE = {"필수": "g-must", "중요": "g-imp", "권장": "g-rec"}
@@ -94,10 +103,9 @@ figcaption { color:#616161; font-size:9pt; font-weight:bold; margin-top:1.5mm; }
 """
 
 page = f"""<!doctype html><html lang="ko"><head><meta charset="utf-8"><title>{e(TITLE)}</title><style>{CSS}</style></head><body>
-<div class="cover"><div class="band"><small>HALAL CERTIFICATION · ON-SITE AUDIT</small><h1>{e(TITLE)}</h1><div>{e(SUBTITLE)}</div></div>
-<figure>{img_tag("02_창고배치도.png", 150)}</figure>
-<table class="info"><tr><td>회사명</td><td></td></tr><tr><td>대상 공장 / 제품</td><td></td></tr>
-<tr><td>인증기관 / 심사 예정일</td><td></td></tr><tr><td>작성자 / 작성일</td><td></td></tr></table></div>
+<div class="cover"><div class="band"><small>{e(COVER_TAG)}</small><h1>{e(TITLE)}</h1><div>{e(SUBTITLE)}</div></div>
+<figure>{img_tag(COVER_IMG, 150)}</figure>
+<table class="info">{"".join(f"<tr><td>{e(k)}</td><td></td></tr>" for k in COVER_ROWS)}</table></div>
 <h1 class="tochead">목 차</h1>{toc}
 {''.join(parts)}
 </body></html>"""

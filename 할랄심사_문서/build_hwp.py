@@ -3,11 +3,20 @@ from pathlib import Path
 
 from hwpx import HwpxDocument
 
-from content import BLOCKS, SUBTITLE, TITLE
+import importlib
+import os
+
+_c = importlib.import_module(os.environ.get("CONTENT", "content"))
+BLOCKS, TITLE, SUBTITLE = _c.BLOCKS, _c.TITLE, _c.SUBTITLE
+OUT_BASE = getattr(_c, "OUT_NAME", "할랄인증_현장심사_준비가이드")
+COVER_IMG = getattr(_c, "COVER_IMG", "02_창고배치도.png")
+COVER_ROWS = getattr(_c, "COVER_ROWS", ["회사명", "대상 공장 / 제품", "인증기관 / 심사 예정일", "작성자 / 작성일"])
+COVER_TAG = getattr(_c, "COVER_TAG", "HALAL CERTIFICATION · ON-SITE AUDIT")
+FOOTER = getattr(_c, "FOOTER", "할랄인증 현장심사 준비 가이드")
 
 HERE = Path(__file__).parent
 IMG = HERE / "images"
-OUT_NAME = "할랄인증_현장심사_준비가이드"
+OUT_NAME = OUT_BASE
 
 MM = 283.46
 BODY_MM = 180
@@ -118,7 +127,7 @@ def image(name, caption, width_mm):
 doc.paragraphs[0].text = ""
 para("", size=20, before=60)
 cover = doc.add_table(1, 1, width=int(BODY_MM * MM))
-cell_write(cover, 0, 0, "HALAL CERTIFICATION · ON-SITE AUDIT", bold=True, color="#C8E6C9", size=12, align="center",
+cell_write(cover, 0, 0, COVER_TAG, bold=True, color="#C8E6C9", size=12, align="center",
            fill=GREEN)
 q = cover.cell(0, 0).add_paragraph("")
 q.add_run(TITLE, bold=True, color="#FFFFFF", size=26, font=FONT)
@@ -126,10 +135,10 @@ q2 = cover.cell(0, 0).add_paragraph("")
 q2.add_run(SUBTITLE, color="#FFFFFF", size=12, font=FONT)
 fmt(paragraphs=[q, q2], alignment="center", line_spacing_percent=180)
 para("", size=10, after=20)
-image("02_창고배치도.png", "", 150)
-info = doc.add_table(4, 2, width=int(BODY_MM * MM))
+image(COVER_IMG, "", 150)
+info = doc.add_table(len(COVER_ROWS), 2, width=int(BODY_MM * MM))
 info.set_column_widths([1, 3])
-for i, k in enumerate(["회사명", "대상 공장 / 제품", "인증기관 / 심사 예정일", "작성자 / 작성일"]):
+for i, k in enumerate(COVER_ROWS):
     cell_write(info, i, 0, k, bold=True, color=GREEN, align="center", fill=GREEN_L)
     cell_write(info, i, 1, "")
 
@@ -159,7 +168,7 @@ for blk in BLOCKS:
     elif kind == "img":
         image(blk[1], blk[2], blk[3])
 
-doc.page.set_footer(text="할랄인증 현장심사 준비 가이드")
+doc.page.set_footer(text=FOOTER)
 doc.page.set_page_number(target="header", align="RIGHT", position="TOP_RIGHT", prefix="- ", suffix=" -")
 
 print(doc.validate())
