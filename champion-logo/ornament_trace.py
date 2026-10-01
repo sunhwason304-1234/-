@@ -6,12 +6,12 @@ from shapely.geometry import Polygon
 from shapely.ops import unary_union
 
 
-def trace(path="ref/ornament_ref.png", up=4):
+def trace(path="ref/ornament_ref.png", up=6):
     im = Image.open(path).convert("RGB")
     a = np.asarray(im).astype(int)
     gold = (a[:, :, 0] > 110) & (a[:, :, 0] - a[:, :, 2] > 35)
-    m = Image.fromarray((gold * 255).astype("uint8")).resize((im.width * up, im.height * up), Image.LANCZOS)
-    arr = np.asarray(m.filter(ImageFilter.GaussianBlur(up * .8))) / 255
+    m = Image.fromarray((gold * 255).astype("uint8")).resize((im.width * up, im.height * up), Image.BICUBIC)
+    arr = np.asarray(m.filter(ImageFilter.GaussianBlur(up * 1.3))) / 255
     polys = []
     for c in measure.find_contours(arr, .5):
         if len(c) < 20:
@@ -26,13 +26,37 @@ def trace(path="ref/ornament_ref.png", up=4):
     return shape
 
 
+def chaikin(coords, n=3):
+    pts = list(coords)[:-1]
+    for _ in range(n):
+        new = []
+        for i in range(len(pts)):
+            p, q = pts[i], pts[(i + 1) % len(pts)]
+            new += [(.75 * p[0] + .25 * q[0], .75 * p[1] + .25 * q[1]), (.25 * p[0] + .75 * q[0], .25 * p[1] + .75 * q[1])]
+        pts = new
+    return pts
+
+
+def smooth(geom, r=.9):
+    """Clean the traced outline: round off pixel wobble, then Chaikin-smooth every ring."""
+    g = geom.buffer(r, join_style="round").buffer(-2 * r, join_style="round").buffer(r, join_style="round")
+    g = g.simplify(.35)
+    out = []
+    for p in getattr(g, "geoms", [g]):
+        if p.area < 3:
+            continue
+        holes = [chaikin(i.coords) for i in p.interiors if Polygon(i).area > 1.5]
+        out.append(Polygon(chaikin(p.exterior.coords), holes).buffer(0))
+    return unary_union(out)
+
+
 def without_dove():
     g = trace()
     parts = list(getattr(g, "geoms", [g]))
     # the dove sits in the upper-right of the picture
     # (plus its separate wing-tip piece): everything whose centre lies right of x=140 and above y=190
     keep = [p for p in parts if not (p.centroid.x > 140 and p.centroid.y < 190)]
-    return unary_union(keep).buffer(.4).buffer(-.4).simplify(.25)
+    return smooth(unary_union(keep))
 
 
 if __name__ == "__main__":
