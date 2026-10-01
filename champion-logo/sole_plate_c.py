@@ -19,6 +19,7 @@ from head4_art import blade
 from head5_art import laurel_leaf
 from parknara import crown_mark
 from trace_tribal import emblem
+from ornament_trace import without_dove
 from sole_plate import plate, inset, flower, scroll, divider, W, H, FOLD, CX, SANS, CUT, FOLD_LINE, GOLD, svg
 
 OUT = Path(__file__).parent / "sole_plate_c"
@@ -78,19 +79,18 @@ def panel():
     P = plate()
     body = inset(P, 2.4)
     g = [outline(inset(P, 1.3), .45), outline(body, .16)]
-    wh = wreath_half()
-    wreath = unary_union([wh, affinity.scale(wh, xfact=-1, origin=(CX, 0)), bow(CX, C[1] + RY + .2)])
+    # client's ornament (dove removed): feathers rising on the outside, scroll + flower towards the centre
+    orn = without_dove()
+    ox0, oy0, ox1, oy1 = orn.bounds
+    k = 33.0 / (oy1 - oy0)
+    left_orn = affinity.translate(affinity.scale(orn, k, k, origin=(ox0, oy0)), CX - 5.0 - (ox1 - ox0) * k - ox0, 4.0 - oy0)
+    wreath = unary_union([left_orn, affinity.scale(left_orn, xfact=-1, origin=(CX, 0))])
     g.append(wreath)
     # centre: crown + PARK NARA
     cr, ch = crown_mark(CX, 7.6, 12.4)
     g.append(cr)
     g.append(box(CX - 6.0, 21.7, CX - 1.4, 21.9)); g.append(box(CX + 1.4, 21.7, CX + 6.0, 21.9))
     g.append(Polygon([(CX, 20.9), (CX + .8, 21.8), (CX, 22.7), (CX - .8, 21.8)]))
-    # fine sunburst behind the wreath (outside it only)
-    rays = [LineString([(C[0] + 21 * math.cos(math.radians(a)), C[1] + 21 * math.sin(math.radians(a))),
-                        (C[0] + 70 * math.cos(math.radians(a)), C[1] + 70 * math.sin(math.radians(a)))]).buffer(.07)
-            for a in range(0, 360, 4)]
-    g.append(unary_union(rays).intersection(body.buffer(-.9)).intersection(box(0, 0, W, FOLD - 3.0)).difference(wreath.buffer(1.0)))
     # back: bar ornament under the fold, tribal half borders, lettering
     g.append(divider(44.0, 14))
     # bend the flame so its outer edge follows the curved plate border
