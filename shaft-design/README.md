@@ -26,5 +26,13 @@
 
 인쇄 참고: 색상은 RGB로 되어 있으니 발주 전에 CMYK로 바꿔 주세요. 도련은 사방 2 mm를 권장합니다(배경은 끝까지 채우기).
 
+## 스플릿 버전 (`parknara-champion-split-*`)
+
+![split](parknara-champion-split-preview.png)
+
+트라이벌 문양을 세로 중심선에서 반으로 잘라 **왼쪽 절반은 위쪽(불꽃이 위로)**, **오른쪽 절반은 아래쪽(상하 반전, 불꽃이 헤드 쪽으로)** 에 배치했습니다.
+두 조각의 잘린 면을 금선으로 길게 이어 CHAMPION 양옆 레일이 되도록 해서, 나뉜 문양이 글자를 감싸는 하나의 흐름으로 보입니다.
+파일 구성은 기본 버전과 같습니다 (SVG / PDF / AI / 300dpi PNG / 프리뷰). 재생성: `build_champion_split.py`
+
 ## 재생성
 `FONT_DIR=<fontsource 폴더> python3 shaft-design/build_champion.py` (`pip install fonttools`, `@fontsource/cinzel`, `@fontsource/montserrat`)
