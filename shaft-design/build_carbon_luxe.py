@@ -118,7 +118,7 @@ def build(vivid=False):
     t, _ = rot_text(SERIF, "CHAMPION", size, 137, "url(#goldVivid)" if vivid else "url(#champ)", track=size * .23, cap=.63)
     o.append(t)
     # 이름 끝의 작은 표기 (레퍼런스의 '83' 자리)
-    t, _ = rot_text(MONT, "PARK GOLF", 1.5, 172.5, "#DCC78F", track=.35, x=CX + 5.6)
+    t, _ = rot_text(MONT, "PREMIUM", 1.5, 172.5, "#DCC78F", track=.35, x=CX + 5.6)
     o.append(t)
 
     # 실버 장식 한 송이
@@ -129,12 +129,13 @@ def build(vivid=False):
     k = w / 673
     o.append(f'<g transform="translate({CX} {240 - w/2:.2f}) rotate(90) scale({k:.4f}) translate(-253 -140)">'
              f'<path d="{WORD}" fill="url(#champ)"/></g>')
-    m, _ = rot_text(MONT, "PN-C01", 1.6, 240 + w/2 + 7, "#DCC78F", track=.3)
+    _, wl = text_path(MONT, "MADE IN KOREA", 1.6, 0, 0, track=.3)
+    m, _ = rot_text(MONT, "MADE IN KOREA", 1.6, 240 + w/2 + 3 + wl/2, "#DCC78F", track=.3)
     o.append(m)
     o.append(f'<rect x="{CX - .15:.2f}" y="{240 - w/2 - 5:.2f}" width=".3" height="2.6" fill="{LIME}"/>')
 
     # 다이아몬드 2개
-    o += [diamond(282), diamond(288)]
+    o += [diamond(288), diamond(294)]
 
     # 크롬 페이드 → 하단 40mm 실버 존
     o.append(f'<rect y="290" width="{W}" height="50" fill="url(#chromeFade)"/>')
