@@ -10,7 +10,7 @@ import os
 from damask import cell
 from build_champion import HERE, W, H, CX, font, text_path, mark, WORD, KOR, TAG
 
-CINZEL = font("cinzel-latin-600-normal.woff")
+SERIF = font("cormorant-garamond-latin-600-normal.woff")
 MONT = font("montserrat-latin-800-normal.woff")
 
 LIME = "#C5DE3A"
@@ -96,10 +96,11 @@ def build():
     o.append(f'<rect width="{W}" height="1.6" fill="{LIME}"/>')
     o.append(f'<rect y="1.6" width="{W}" height=".3" fill="url(#silver)"/>')
 
-    # PARKNARA (로고 원본 세리프 아웃라인) – 샴페인 골드
-    s = 82 / 673
-    o.append(f'<g transform="translate({CX} 96) rotate(90) scale({s:.4f}) translate(-253 -140)">'
-             f'<path d="{WORD}" fill="url(#champ)"/></g>')
+    # CHAMPION – 메인 네임, 로고와 같은 세리프(Cormorant Garamond)로 크게
+    _, w10 = text_path(SERIF, "CHAMPION", 10, 0, 0, track=2.3)
+    size = 10 * 82 / w10                       # 길이 82mm에 맞춤
+    t, _ = rot_text(SERIF, "CHAMPION", size, 137, "url(#champ)", track=size * .23, cap=.63)
+    o.append(t)
     # 이름 끝의 작은 표기 (레퍼런스의 '83' 자리)
     t, _ = rot_text(MONT, "PARK GOLF", 1.5, 172.5, "#DCC78F", track=.35, x=CX + 5.6)
     o.append(t)
@@ -107,9 +108,11 @@ def build():
     # 실버 장식 한 송이
     o.append(f'<rect y="182" width="{W}" height="24" fill="url(#silver)" mask="url(#ornMask)"/>')
 
-    # CHAMPION – 작고 넓은 자간
-    t, w = rot_text(CINZEL, "CHAMPION", 4.6, 240, "url(#champ)", track=1.5)
-    o.append(t)
+    # PARKNARA – 로고 원본 세리프 아웃라인, 작게
+    w = 40
+    k = w / 673
+    o.append(f'<g transform="translate({CX} {240 - w/2:.2f}) rotate(90) scale({k:.4f}) translate(-253 -140)">'
+             f'<path d="{WORD}" fill="url(#champ)"/></g>')
     m, _ = rot_text(MONT, "PN-C01", 1.6, 240 + w/2 + 7, "#DCC78F", track=.3)
     o.append(m)
     o.append(f'<rect x="{CX - .15:.2f}" y="{240 - w/2 - 5:.2f}" width=".3" height="2.6" fill="{LIME}"/>')
