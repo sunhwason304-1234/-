@@ -8,7 +8,6 @@
 """
 import os
 from damask import cell
-from flame import flame
 from build_champion import HERE, W, H, CX, font, text_path, mark, WORD, KOR, TAG
 
 SERIF = font("cormorant-garamond-latin-600-normal.woff")
@@ -17,7 +16,7 @@ MONT = font("montserrat-latin-800-normal.woff")
 LIME = "#C5DE3A"
 CELL_W = 20                     # 다마스크 한 칸 = 20mm (둘레 40mm에 2칸 → 이음새 없이 맞물림)
 CS = CELL_W / 100
-FS, FY = .13, 185.5               # 가운데 트라이벌 문양 배율·위치 (13 x 21mm)
+CR, CY_CROWN = .145, 196.5        # 왕관 배율(100x80 → 14.5 x 11.6mm)·중심 위치
 LACE_END = 80                   # 레이스 영역 끝(가운데 뾰족한 부분)
 
 def defs():
@@ -67,7 +66,6 @@ def defs():
   <!-- 실버 그라데이션을 다마스크 칸 좌표계로 옮긴 버전 (마스크 없이 벡터 유지 → AI/PDF에서 래스터화되지 않음) -->
   {cell_gradient("silverC0", 0, CS)}
   {cell_gradient("silverC1", CELL_W, CS)}
-  {cell_gradient("silverFlame", CX - 50*FS, FS)}
 </defs>'''
 
 def lace_edge():
@@ -90,6 +88,25 @@ def lace_tiles():
             y = 2 + row * 120 * CS + (60 * CS if col else 0)
             out.append(f'<g transform="translate({col*CELL_W} {y:.2f}) scale({CS})">{cell(f"url(#silverC{col})")}</g>')
     return "".join(out)
+
+def crown(gold, gem, line):
+    """왕관 (0..100 x 0..80, 위쪽이 꼭대기). 5개 봉우리 + 구슬 + 보석 밴드."""
+    body = ("M9 61 C7 48 5 34 3 22 L17 35 L27 13 L39 29 L50 6 L61 29 L73 13 L83 35 L97 22 C95 34 93 48 91 61 Z")
+    return f'''<g stroke="{line}" stroke-width="1.1" stroke-linejoin="round">
+  <path d="{body}" fill="{gold}"/>
+  <rect x="7" y="62" width="86" height="13" rx="2.5" fill="{gold}"/>
+  <g fill="{gold}"><circle cx="3" cy="20" r="4.2"/><circle cx="27" cy="10.5" r="4.2"/><circle cx="73" cy="10.5" r="4.2"/>
+  <circle cx="97" cy="20" r="4.2"/><circle cx="50" cy="3" r="5.2"/></g>
+  <circle cx="50" cy="3" r="2" fill="{gem}" stroke="none"/>
+</g>
+<g fill="{gem}">
+  <path d="M50 34 l6 10 l-6 10 l-6 -10 Z"/>
+  <path d="M50 64.5 l4.5 4 l-4.5 4 l-4.5 -4 Z"/>
+  <ellipse cx="29" cy="68.5" rx="4.2" ry="2.8"/><ellipse cx="71" cy="68.5" rx="4.2" ry="2.8"/>
+  <circle cx="14" cy="68.5" r="1.8"/><circle cx="86" cy="68.5" r="1.8"/>
+  <circle cx="27" cy="46" r="2.6"/><circle cx="73" cy="46" r="2.6"/>
+</g>
+<path d="M12 58 Q50 50 88 58" fill="none" stroke="{gem}" stroke-width="1" opacity=".7"/>'''
 
 def rot_text(f, txt, size, cy, fill, track=0, x=CX, cap=.7):
     p, w = text_path(f, txt, size, 0, 0, track=track, anchor="middle")
@@ -124,10 +141,10 @@ def build(vivid=False):
     o.append(t)
 
     # 실버 장식 한 송이
-    # 트라이벌 문양 (실버) – 레이스와 같은 금속 톤
-    o.append(f'<g transform="translate({CX - 50*FS + .3:.2f} {FY + .4}) scale({FS})" opacity=".8">{flame("#000")}</g>')
-    o.append(f'<g transform="translate({CX - 50*FS:.2f} {FY}) scale({FS})" stroke="#C9A85A" stroke-width="2.6" stroke-linejoin="round">{flame("#C9A85A")}</g>')
-    o.append(f'<g transform="translate({CX - 50*FS:.2f} {FY}) scale({FS})">{flame("url(#silverFlame)")}</g>')
+    # 왕관 – CHAMPION과 같은 금색, 글자와 같은 방향(위가 오른쪽)으로 회전
+    tf = f"translate({CX + 80*CR/2:.3f} {CY_CROWN - 100*CR/2:.3f}) rotate(90) scale({CR})"
+    o.append(f'<g transform="translate(.35 .45) {tf}" opacity=".75">{crown("#000", "#000", "#000")}</g>')
+    o.append(f'<g transform="{tf}">{crown("url(#goldVivid)" if vivid else "url(#champ)", "url(#silverV)", "#2A1A00")}</g>')
 
     # PARKNARA – 로고 원본 세리프 아웃라인, 작게
     w = 40
