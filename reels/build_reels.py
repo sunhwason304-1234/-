@@ -1,5 +1,6 @@
 # 당진 호풍미 호박고구마 × 말티즈 릴스 2편 편집 스크립트 (ffmpeg)
 # 사용: python3 build_reels.py <작업폴더>  (src/, ai/, music/, fonts/ 가 준비돼 있어야 함)
+# 음악: Kevin MacLeod "Fluffing a Duck", "Wholesome" (incompetech.com, CC BY 4.0)
 import os, subprocess, sys
 
 W, H, FPS = 1080, 1920, 30
@@ -90,14 +91,17 @@ r1 = [
         dt("당진 호풍미 호박고구마", TOP2, 84, YEL)], fit="blur"),
     seg(f"{D}/seg/r1_3.mp4", f"{S}/v_pan2.mp4", 2.0, [
         dt("뚜껑 덮고 노릇노릇 굽굽", TOP1, 84)], ss=0.4, fit="blur"),
-    seg(f"{D}/seg/r1_4.mp4", f"{S}/v_halves.mp4", 0.76, [
-        dt("반 갈라보니...", TOP1, 90, YEL)], fit="blur"),
-    seg(f"{D}/seg/r1_5.mp4", f"{S}/v_review.mp4", 3.0, [
+    seg(f"{D}/seg/r1_4.mp4", f"{S}/pan.jpg", 2.0, [
+        dt("30분 뒤...", TOP1, 96, YEL),
+        dt("뚜껑을 열어보니 노릇노릇", TOP2, 80)], fit="blur", still=True),
+    seg(f"{D}/seg/r1_5a.mp4", f"{S}/v_review.mp4", 1.0, [
+        dt("반 갈라보니...", TOP1, 96, YEL)], ss=15.4),
+    seg(f"{D}/seg/r1_5b.mp4", f"{S}/v_review.mp4", 1.5, [
         dt("이 색깔 실화??", TOP1, 96, YEL),
-        dt("꿀이 줄줄 흐르는 호박고구마", TOP2, 76)], ss=28.0),
-    seg(f"{D}/seg/r1_6.mp4", f"{A}/ai1.mp4", 5.0, [
+        dt("꿀이 줄줄 흐르는 호박고구마", TOP2, 76)], ss=26.4),
+    seg(f"{D}/seg/r1_6.mp4", f"{A}/ai1b.mp4", 5.0, [
         dt("결국 못 참은 말티즈", TOP1, 88),
-        dt("한 입만 주세요 ㅠㅠ", LOW, 92, PINK, a=2.2)], audio=True),
+        dt("한 입만 주세요 ㅠㅠ", LOW, 92, PINK, a=1.8)], audio=True),
     seg(f"{D}/seg/r1_7.mp4", f"{S}/honey.jpg", 3.2, [
         dt("당진 호풍미 호박고구마", MID - 140, 92, YEL),
         dt("우리 강아지도 반한 그 맛", MID - 10, 74),
@@ -116,14 +120,17 @@ r2 = [
         dt("황토밭에서 갓 캐온 녀석", TOP2, 76)], still=True),
     seg(f"{D}/seg/r2_3.mp4", f"{S}/v_pan1.mp4", 2.5, [
         dt("심사 1단계: 통째로 굽기", TOP1, 84)], ss=4.0, fit="blur"),
-    seg(f"{D}/seg/r2_4.mp4", f"{S}/cut.jpg", 2.4, [
-        dt("심사 2단계: 반 가르기", TOP1, 84),
-        dt("꿀 마블링 무엇...", TOP2, 84, YEL)], still=True),
-    seg(f"{D}/seg/r2_5.mp4", f"{S}/honey.jpg", 2.0, [
+    seg(f"{D}/seg/r2_4.mp4", f"{S}/pan.jpg", 2.0, [
+        dt("30분 뒤...", TOP1, 96, YEL),
+        dt("껍질까지 쫀득 노릇노릇", TOP2, 80)], fit="blur", still=True),
+    seg(f"{D}/seg/r2_5a.mp4", f"{S}/v_review.mp4", 1.0, [
+        dt("심사 2단계: 반 가르기", TOP1, 84)], ss=15.4),
+    seg(f"{D}/seg/r2_5b.mp4", f"{S}/v_review.mp4", 1.5, [
+        dt("심사 2단계: 반 가르기", TOP1, 84, a=-1),
+        dt("꿀 마블링 무엇...", TOP2, 84, YEL)], ss=26.4),
+    seg(f"{D}/seg/r2_6.mp4", f"{S}/honey.jpg", 2.0, [
         dt("이 색깔 실화??", LOW, 96, YEL)], fit="blur", still=True),
-    seg(f"{D}/seg/r2_6.mp4", f"{S}/pan.jpg", 1.8, [
-        dt("껍질까지 쫀득 달달", TOP1, 86)], fit="blur", still=True),
-    seg(f"{D}/seg/r2_7.mp4", f"{A}/ai3.mp4", 5.0, [
+    seg(f"{D}/seg/r2_7.mp4", f"{A}/ai3b.mp4", 5.0, [
         dt("셰프 판정 결과는?!", TOP1, 88),
         dt("합격!! 100점", TOP2 + 10, 120, YEL, a=1.4),
         dt("당진 호풍미 호박고구마", LOW, 80, WHT, a=2.6),
@@ -131,5 +138,5 @@ r2 = [
         dt(TIP, 1560, 40, WHT, border=5)], audio=True),
 ]
 
-print(build("reel1_maltese_molka", r1, f"{M}/bouncy_cute.m4a"))
-print(build("reel2_maltese_chef", r2, f"{M}/cozy_lofi.m4a"))
+print(build("reel1_maltese_molka", r1, f"{M}/fluffing_a_duck.mp3", 0.5))
+print(build("reel2_maltese_chef", r2, f"{M}/wholesome.mp3", 0.5))
