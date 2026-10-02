@@ -34,6 +34,12 @@ def defs():
     <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#B9BDC3"/>
   </linearGradient>
   <!-- 회전 글자용 샴페인 골드 (글자 기준 세로 = 샤프트 가로) -->
+  <!-- 비비드 골드: 채도·명도를 올린 선명한 순금색 (골드 에디션의 CHAMPION 전용) -->
+  <linearGradient id="goldVivid" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0" stop-color="#9A6A00"/><stop offset=".22" stop-color="#E3A81E"/>
+    <stop offset=".42" stop-color="#FFD54A"/><stop offset=".52" stop-color="#FFF4C2"/>
+    <stop offset=".64" stop-color="#FFCB2E"/><stop offset=".85" stop-color="#D09312"/><stop offset="1" stop-color="#8C5E00"/>
+  </linearGradient>
   <linearGradient id="champ" x1="0" y1="1" x2="0" y2="0">
     <stop offset="0" stop-color="#A88D55"/><stop offset=".45" stop-color="#F3E8C6"/>
     <stop offset=".65" stop-color="#DCC78F"/><stop offset="1" stop-color="#9C8048"/>
@@ -92,7 +98,7 @@ def diamond(y, s=1.3):
             f'fill="none" stroke="url(#silver)" stroke-width=".28"/>'
             f'<path d="M{CX} {y-s*.45:.2f} l{s*.33:.2f} {s*.45:.2f} l{-s*.33:.2f} {s*.45:.2f} l{-s*.33:.2f} {-s*.45:.2f}z" fill="url(#silver)"/>')
 
-def build():
+def build(vivid=False):
     o = [f'<rect width="{W}" height="{H}" fill="url(#carbon)"/>']
     # 라임 포인트 밴드 + 실버 헤어라인
     # 실버 바로크 레이스
@@ -105,7 +111,11 @@ def build():
     # CHAMPION – 메인 네임, 로고와 같은 세리프(Cormorant Garamond)로 크게
     _, w10 = text_path(SERIF, "CHAMPION", 10, 0, 0, track=2.3)
     size = 10 * 82 / w10                       # 길이 82mm에 맞춤
-    t, _ = rot_text(SERIF, "CHAMPION", size, 137, "url(#champ)", track=size * .23, cap=.63)
+    if vivid:
+        # 어두운 테두리를 살짝 깔아 금색 윤곽을 또렷하게
+        t, _ = rot_text(SERIF, "CHAMPION", size, 137, "none", track=size * .23, cap=.63)
+        o.append(t.replace('fill="none"', 'fill="none" stroke="#2A1A00" stroke-width=".45" stroke-linejoin="round"'))
+    t, _ = rot_text(SERIF, "CHAMPION", size, 137, "url(#goldVivid)" if vivid else "url(#champ)", track=size * .23, cap=.63)
     o.append(t)
     # 이름 끝의 작은 표기 (레퍼런스의 '83' 자리)
     t, _ = rot_text(MONT, "PARK GOLF", 1.5, 172.5, "#DCC78F", track=.35, x=CX + 5.6)
@@ -151,7 +161,8 @@ def build():
     return o
 
 if __name__ == "__main__":
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}mm" height="{H}mm">\n'
-           + defs() + "\n" + "\n".join(build()) + "\n</svg>\n")
-    open(os.path.join(HERE, "parknara-carbon-luxe-40x380.svg"), "w").write(svg)
+    for name, vivid in (("parknara-carbon-luxe-40x380.svg", False), ("parknara-carbon-luxe-gold-40x380.svg", True)):
+        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}mm" height="{H}mm">\n'
+               + defs() + "\n" + "\n".join(build(vivid)) + "\n</svg>\n")
+        open(os.path.join(HERE, name), "w").write(svg)
     print("ok")
