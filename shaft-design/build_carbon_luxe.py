@@ -56,12 +56,10 @@ def defs():
   <clipPath id="laceClip">
     <path d="{lace_edge()} V0 H0 Z"/>
   </clipPath>
-  <mask id="laceMask" maskUnits="userSpaceOnUse" x="0" y="0" width="{W}" height="{LACE_END + 2}">
-    <g clip-path="url(#laceClip)">{lace_tiles()}</g>
-  </mask>
-  <mask id="ornMask" maskUnits="userSpaceOnUse" x="0" y="182" width="{W}" height="24">
-    <g transform="translate({CX - 50*.15:.2f} 185) scale(.15)">{cell("#FFFFFF")}</g>
-  </mask>
+  <!-- 실버 그라데이션을 다마스크 칸 좌표계로 옮긴 버전 (마스크 없이 벡터 유지 → AI/PDF에서 래스터화되지 않음) -->
+  {cell_gradient("silverC0", 0, CS)}
+  {cell_gradient("silverC1", CELL_W, CS)}
+  {cell_gradient("silverOrn", CX - 50*.15, .15)}
 </defs>'''
 
 def lace_edge():
@@ -69,12 +67,20 @@ def lace_edge():
     return ("M0 64 C3 68 6 66 8 70 C10 74 13 72 15 76 C17 79 19 78 20 " + str(LACE_END) +
             " C21 78 23 79 25 76 C27 72 30 74 32 70 C34 66 37 68 40 64")
 
+def cell_gradient(gid, ox, sc):
+    """바깥 좌표 0..W 의 실버 그라데이션을 translate(ox) scale(sc) 된 칸 좌표로 변환."""
+    x1, x2 = (0 - ox) / sc, (W - ox) / sc
+    return (f'<linearGradient id="{gid}" gradientUnits="userSpaceOnUse" x1="{x1:.2f}" y1="0" x2="{x2:.2f}" y2="0">'
+            '<stop offset="0" stop-color="#9A9EA4"/><stop offset=".3" stop-color="#E6E8EB"/>'
+            '<stop offset=".45" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#D9DCE0"/>'
+            '<stop offset=".85" stop-color="#A9ADB3"/><stop offset="1" stop-color="#8A8E94"/></linearGradient>')
+
 def lace_tiles():
     out = []
     for col in range(2):
         for row in range(-1, 4):
             y = 2 + row * 120 * CS + (60 * CS if col else 0)
-            out.append(f'<g transform="translate({col*CELL_W} {y:.2f}) scale({CS})">{cell("#FFFFFF")}</g>')
+            out.append(f'<g transform="translate({col*CELL_W} {y:.2f}) scale({CS})">{cell(f"url(#silverC{col})")}</g>')
     return "".join(out)
 
 def rot_text(f, txt, size, cy, fill, track=0, x=CX, cap=.7):
@@ -90,7 +96,7 @@ def build():
     o = [f'<rect width="{W}" height="{H}" fill="url(#carbon)"/>']
     # 라임 포인트 밴드 + 실버 헤어라인
     # 실버 바로크 레이스
-    o.append(f'<rect width="{W}" height="{LACE_END + 2}" fill="url(#silver)" mask="url(#laceMask)"/>')
+    o.append(f'<g clip-path="url(#laceClip)">{lace_tiles()}</g>')
     o.append(f'<path d="{lace_edge()}" fill="none" stroke="url(#silver)" stroke-width=".35"/>')
     o.append(f'<circle cx="{CX}" cy="{LACE_END + 2.2}" r=".55" fill="url(#silver)"/>')
     o.append(f'<rect width="{W}" height="1.6" fill="{LIME}"/>')
@@ -106,7 +112,7 @@ def build():
     o.append(t)
 
     # 실버 장식 한 송이
-    o.append(f'<rect y="182" width="{W}" height="24" fill="url(#silver)" mask="url(#ornMask)"/>')
+    o.append(f'<g transform="translate({CX - 50*.15:.2f} 185) scale(.15)">{cell("url(#silverOrn)")}</g>')
 
     # PARKNARA – 로고 원본 세리프 아웃라인, 작게
     w = 40
