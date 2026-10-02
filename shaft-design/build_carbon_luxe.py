@@ -8,6 +8,7 @@
 """
 import os
 from damask import cell
+from flame import flame
 from build_champion import HERE, W, H, CX, font, text_path, mark, WORD, KOR, TAG
 
 SERIF = font("cormorant-garamond-latin-600-normal.woff")
@@ -16,6 +17,7 @@ MONT = font("montserrat-latin-800-normal.woff")
 LIME = "#C5DE3A"
 CELL_W = 20                     # 다마스크 한 칸 = 20mm (둘레 40mm에 2칸 → 이음새 없이 맞물림)
 CS = CELL_W / 100
+FS, FY = .13, 185.5               # 가운데 트라이벌 문양 배율·위치 (13 x 21mm)
 LACE_END = 80                   # 레이스 영역 끝(가운데 뾰족한 부분)
 
 def defs():
@@ -65,7 +67,7 @@ def defs():
   <!-- 실버 그라데이션을 다마스크 칸 좌표계로 옮긴 버전 (마스크 없이 벡터 유지 → AI/PDF에서 래스터화되지 않음) -->
   {cell_gradient("silverC0", 0, CS)}
   {cell_gradient("silverC1", CELL_W, CS)}
-  {cell_gradient("silverOrn", CX - 50*.15, .15)}
+  {cell_gradient("silverFlame", CX - 50*FS, FS)}
 </defs>'''
 
 def lace_edge():
@@ -122,7 +124,10 @@ def build(vivid=False):
     o.append(t)
 
     # 실버 장식 한 송이
-    o.append(f'<g transform="translate({CX - 50*.15:.2f} 185) scale(.15)">{cell("url(#silverOrn)")}</g>')
+    # 트라이벌 문양 (실버) – 레이스와 같은 금속 톤
+    o.append(f'<g transform="translate({CX - 50*FS + .3:.2f} {FY + .4}) scale({FS})" opacity=".8">{flame("#000")}</g>')
+    o.append(f'<g transform="translate({CX - 50*FS:.2f} {FY}) scale({FS})" stroke="#C9A85A" stroke-width="2.6" stroke-linejoin="round">{flame("#C9A85A")}</g>')
+    o.append(f'<g transform="translate({CX - 50*FS:.2f} {FY}) scale({FS})">{flame("url(#silverFlame)")}</g>')
 
     # PARKNARA – 로고 원본 세리프 아웃라인, 작게
     w = 40
