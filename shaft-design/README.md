@@ -34,5 +34,15 @@
 두 조각의 잘린 면을 금선으로 길게 이어 CHAMPION 양옆 레일이 되도록 해서, 나뉜 문양이 글자를 감싸는 하나의 흐름으로 보입니다.
 파일 구성은 기본 버전과 같습니다 (SVG / PDF / AI / 300dpi PNG / 프리뷰). 재생성: `build_champion_split.py`
 
+## 카본 럭스 에디션 (`parknara-carbon-luxe-*`)
+
+![luxe](parknara-carbon-luxe-preview.png)
+
+블랙 글로시 카본 바탕에 **실버 · 샴페인 골드 · 라임 포인트**만 쓴 절제된 컬러 조합입니다.
+- 상단: 라임 밴드 + 실버 바로크 다마스크 레이스(20mm 칸 2개가 둘레에서 이음새 없이 맞물림), 가운데로 모이는 스캘럽 가장자리
+- PARKNARA 세리프(로고 원본) 샴페인 골드, 실버 장식 한 송이, 넓은 자간의 CHAMPION과 모델명 PN-C01, 실버 다이아몬드 2개
+- 하단: 블랙에서 크롬 실버로 페이드, 하단 40mm는 브러시드 실버 위 파크나라 로고(밝은 배경용)
+- 재생성: `build_carbon_luxe.py` (문양: `damask.py`)
+
 ## 재생성
 `FONT_DIR=<fontsource 폴더> python3 shaft-design/build_champion.py` (`pip install fonttools`, `@fontsource/cinzel`, `@fontsource/montserrat`)
