@@ -16,7 +16,6 @@ MONT = font("montserrat-latin-800-normal.woff")
 LIME = "#C5DE3A"
 CELL_W = 20                     # 다마스크 한 칸 = 20mm (둘레 40mm에 2칸 → 이음새 없이 맞물림)
 CS = CELL_W / 100
-CR, CY_CROWN = .18, 196.5         # 왕관 배율(100x80 → 18 x 14mm)·중심 위치
 LACE_END = 80                   # 레이스 영역 끝(가운데 뾰족한 부분)
 
 def defs():
@@ -41,10 +40,6 @@ def defs():
     <stop offset=".42" stop-color="#FFD54A"/><stop offset=".52" stop-color="#FFF4C2"/>
     <stop offset=".64" stop-color="#FFCB2E"/><stop offset=".85" stop-color="#D09312"/><stop offset="1" stop-color="#8C5E00"/>
   </linearGradient>
-  <radialGradient id="ruby" cx=".4" cy=".35" r=".75">
-    <stop offset="0" stop-color="#FF7A86"/><stop offset=".35" stop-color="#D3102F"/>
-    <stop offset=".8" stop-color="#7A0018"/><stop offset="1" stop-color="#4A000E"/>
-  </radialGradient>
   <linearGradient id="champ" x1="0" y1="1" x2="0" y2="0">
     <stop offset="0" stop-color="#A88D55"/><stop offset=".45" stop-color="#F3E8C6"/>
     <stop offset=".65" stop-color="#DCC78F"/><stop offset="1" stop-color="#9C8048"/>
@@ -70,6 +65,7 @@ def defs():
   <!-- 실버 그라데이션을 다마스크 칸 좌표계로 옮긴 버전 (마스크 없이 벡터 유지 → AI/PDF에서 래스터화되지 않음) -->
   {cell_gradient("silverC0", 0, CS)}
   {cell_gradient("silverC1", CELL_W, CS)}
+  {cell_gradient("silverOrn", CX - 50*.15, .15)}
 </defs>'''
 
 def lace_edge():
@@ -93,27 +89,6 @@ def lace_tiles():
             out.append(f'<g transform="translate({col*CELL_W} {y:.2f}) scale({CS})">{cell(f"url(#silverC{col})")}</g>')
     return "".join(out)
 
-def crown(gold, gem, line, ruby=None):
-    """왕관 (0..100 x 0..80, 위쪽이 꼭대기). 5개 봉우리 + 구슬 + 보석 밴드. ruby: 가운데 보석 색."""
-    ruby = ruby or gem
-    body = ("M9 61 C7 48 5 34 3 22 L17 35 L27 13 L39 29 L50 6 L61 29 L73 13 L83 35 L97 22 C95 34 93 48 91 61 Z")
-    return f'''<g stroke="{line}" stroke-width="1.1" stroke-linejoin="round">
-  <path d="{body}" fill="{gold}"/>
-  <rect x="7" y="62" width="86" height="13" rx="2.5" fill="{gold}"/>
-  <g fill="{gold}"><circle cx="3" cy="20" r="4.2"/><circle cx="27" cy="10.5" r="4.2"/><circle cx="73" cy="10.5" r="4.2"/>
-  <circle cx="97" cy="20" r="4.2"/><circle cx="50" cy="3" r="5.2"/></g>
-  <circle cx="50" cy="3" r="2.2" fill="{ruby}" stroke="none"/>
-</g>
-<path d="M50 32 l7 12 l-7 12 l-7 -12 Z" fill="{ruby}" stroke="{line}" stroke-width=".6"/>
-<path d="M50 34.5 l3 5 l-3 1.6 l-3 -1.6 Z" fill="#FFFFFF" opacity=".55"/>
-<ellipse cx="50" cy="68.5" rx="5.2" ry="3.6" fill="{ruby}" stroke="{line}" stroke-width=".5"/>
-<g fill="{gem}">
-  <ellipse cx="29" cy="68.5" rx="4.2" ry="2.8"/><ellipse cx="71" cy="68.5" rx="4.2" ry="2.8"/>
-  <circle cx="14" cy="68.5" r="1.8"/><circle cx="86" cy="68.5" r="1.8"/>
-  <circle cx="27" cy="46" r="2.6"/><circle cx="73" cy="46" r="2.6"/>
-</g>
-<path d="M12 58 Q50 50 88 58" fill="none" stroke="{gem}" stroke-width="1" opacity=".7"/>'''
-
 def rot_text(f, txt, size, cy, fill, track=0, x=CX, cap=.7):
     p, w = text_path(f, txt, size, 0, 0, track=track, anchor="middle")
     return f'<path transform="translate({x - size*cap/2:.3f} {cy:.2f}) rotate(90)" d="{p}" fill="{fill}"/>', w
@@ -123,7 +98,10 @@ def diamond(y, s=1.3):
             f'fill="none" stroke="url(#silver)" stroke-width=".28"/>'
             f'<path d="M{CX} {y-s*.45:.2f} l{s*.33:.2f} {s*.45:.2f} l{-s*.33:.2f} {s*.45:.2f} l{-s*.33:.2f} {-s*.45:.2f}z" fill="url(#silver)"/>')
 
-def build(vivid=False, crown_style="final"):
+def build(vivid=False):
+    gold = "url(#goldVivid)" if vivid else "url(#champ)"      # 큰 글자
+    small = "#F7C948" if vivid else "#DCC78F"                  # 작은 보조 문구
+    edge = 'stroke="#2A1A00" stroke-linejoin="round"'           # 비비드 골드용 어두운 테두리
     o = [f'<rect width="{W}" height="{H}" fill="url(#carbon)"/>']
     # 라임 포인트 밴드 + 실버 헤어라인
     # 실버 바로크 레이스
@@ -140,34 +118,24 @@ def build(vivid=False, crown_style="final"):
         # 어두운 테두리를 살짝 깔아 금색 윤곽을 또렷하게
         t, _ = rot_text(SERIF, "CHAMPION", size, 137, "none", track=size * .23, cap=.63)
         o.append(t.replace('fill="none"', 'fill="none" stroke="#2A1A00" stroke-width=".45" stroke-linejoin="round"'))
-    t, _ = rot_text(SERIF, "CHAMPION", size, 137, "url(#goldVivid)" if vivid else "url(#champ)", track=size * .23, cap=.63)
+    t, _ = rot_text(SERIF, "CHAMPION", size, 137, gold, track=size * .23, cap=.63)
     o.append(t)
     # 이름 끝의 작은 표기 (레퍼런스의 '83' 자리)
-    t, _ = rot_text(MONT, "PREMIUM", 1.5, 172.5, "#DCC78F", track=.35, x=CX + 5.6)
+    t, _ = rot_text(MONT, "PREMIUM", 1.5, 172.5, small, track=.35, x=CX + 5.6)
     o.append(t)
 
-    # 실버 장식 한 송이
-    # 왕관 – 똑바로 세워(꼭대기가 그립 쪽) 상단 P 엠블럼과 같은 방향의 심볼로.
-    # CHAMPION과 같은 금색, 가운데 보석은 루비로 포인트, 나머지 보석은 실버.
-    gold = "url(#goldVivid)" if vivid else "url(#champ)"
-    if crown_style == "rotated":      # 이전 버전 (비교용)
-        cr = .145
-        tf = f"translate({CX + 80*cr/2:.3f} {CY_CROWN - 100*cr/2:.3f}) rotate(90) scale({cr})"
-        ruby = None
-    else:
-        cr = CR if crown_style == "final" else .145
-        tf = f"translate({CX - 50*cr:.3f} {CY_CROWN - 36.5*cr:.3f}) scale({cr})"
-        ruby = "url(#ruby)" if crown_style == "final" else None
-    o.append(f'<g transform="translate(.35 .45) {tf}" opacity=".75">{crown("#000", "#000", "#000")}</g>')
-    o.append(f'<g transform="{tf}">{crown(gold, "url(#silverV)", "#2A1A00", ruby)}</g>')
+    # 실버 장식 한 송이 (위쪽 레이스와 같은 다마스크 문양)
+    o.append(f'<g transform="translate({CX - 50*.15:.2f} 185) scale(.15)">{cell("url(#silverOrn)")}</g>')
 
     # PARKNARA – 로고 원본 세리프 아웃라인, 작게
     w = 40
     k = w / 673
-    o.append(f'<g transform="translate({CX} {240 - w/2:.2f}) rotate(90) scale({k:.4f}) translate(-253 -140)">'
-             f'<path d="{WORD}" fill="url(#champ)"/></g>')
+    ptf = f'translate({CX} {240 - w/2:.2f}) rotate(90) scale({k:.4f}) translate(-253 -140)'
+    if vivid:
+        o.append(f'<g transform="{ptf}"><path d="{WORD}" fill="none" {edge} stroke-width="{.35/k:.2f}"/></g>')
+    o.append(f'<g transform="{ptf}"><path d="{WORD}" fill="{gold}"/></g>')
     _, wl = text_path(MONT, "MADE IN KOREA", 1.6, 0, 0, track=.3)
-    m, _ = rot_text(MONT, "MADE IN KOREA", 1.6, 240 + w/2 + 3 + wl/2, "#DCC78F", track=.3)
+    m, _ = rot_text(MONT, "MADE IN KOREA", 1.6, 240 + w/2 + 3 + wl/2, small, track=.3)
     o.append(m)
     o.append(f'<rect x="{CX - .15:.2f}" y="{240 - w/2 - 5:.2f}" width=".3" height="2.6" fill="{LIME}"/>')
 

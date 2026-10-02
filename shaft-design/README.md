@@ -40,9 +40,9 @@
 
 블랙 글로시 카본 바탕에 **실버 · 샴페인 골드 · 라임 포인트**만 쓴 절제된 컬러 조합입니다.
 - 상단: 라임 밴드 + 실버 바로크 다마스크 레이스(20mm 칸 2개가 둘레에서 이음새 없이 맞물림), 가운데로 모이는 스캘럽 가장자리
-- 메인 CHAMPION(로고와 같은 세리프) 샴페인 골드, 왕관(똑바로 세운 18mm, CHAMPION과 같은 금색 + 루비 센터 보석 + 실버 보석, 비교: `parknara-carbon-luxe-crown-compare.png`), 작은 PARKNARA 로고 글자, 보조 문구 PREMIUM · MADE IN KOREA, 실버 다이아몬드 2개
+- 메인 CHAMPION(로고와 같은 세리프) 샴페인 골드, 실버 다마스크 장식, 작은 PARKNARA 로고 글자, 보조 문구 PREMIUM · MADE IN KOREA, 실버 다이아몬드 2개
 - 하단: 블랙에서 크롬 실버로 페이드, 하단 40mm는 브러시드 실버 위 파크나라 로고(밝은 배경용)
-- **골드 에디션** (`parknara-carbon-luxe-gold-*`): CHAMPION 글자만 더 선명한 비비드 골드(`#FFD54A`~`#E3A81E`)에 얇은 어두운 테두리를 더한 버전
+- **골드 에디션** (`parknara-carbon-luxe-gold-*`): CHAMPION · PARKNARA · 보조 문구까지 모든 글자를 선명한 비비드 골드(`#FFD54A`~`#E3A81E`, 보조 `#F7C948`)로, 큰 글자에는 얇은 어두운 테두리. 레이아웃 사양: `parknara-carbon-luxe-gold-layout.png`
 - 재생성: `build_carbon_luxe.py` (문양: `damask.py`) – 기본/골드 에디션을 함께 생성
 
 ## 재생성
