@@ -13,7 +13,7 @@ from shapely import affinity
 from shapely.geometry import LineString, Point, Polygon, box
 from shapely.ops import transform, unary_union
 
-from shaft import d_of, star
+from shaft import bezier, d_of, star
 from head_art import outline
 from head2_art import text, SERIF_KR
 from parknara import crown_mark
@@ -52,7 +52,15 @@ def left_path(P, d):
     line = LineString(pts)
     if line.coords[0][1] > line.coords[-1][1]:
         line = LineString(list(line.coords)[::-1])
-    return line
+    # follow the border down to y=66, then let the tail run naturally down into the bottom corner
+    # (instead of turning horizontal along the flat bottom edge)
+    cs = [c for c in line.coords if c[1] <= 66.0]
+    (xa, ya), (xb, yb) = cs[-6], cs[-1]
+    n = math.hypot(xb - xa, yb - ya)
+    tx, ty = (xb - xa) / n, (yb - ya) / n
+    end = (30.6, 76.6)
+    tail = bezier((xb, yb), (xb + tx * 4.5, yb + ty * 4.5), (end[0] - 1.2, end[1] - 3.2), end, 30)
+    return LineString(cs + tail[1:])
 
 
 def tribal_along(P, d=4.8, width=6.4):
