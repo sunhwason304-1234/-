@@ -24,7 +24,7 @@ from sole_plate import plate, inset, W, H, FOLD, CX, SANS, CUT, FOLD_LINE, GOLD,
 
 OUT = Path(__file__).parent / "sole_plate_d"
 OUT.mkdir(exist_ok=True)
-CROWN_TOP = 6.0
+CROWN_TOP = 6.6
 
 
 def wing_left():
@@ -34,9 +34,9 @@ def wing_left():
     flowers = [p for p in parts if math.dist((p.centroid.x, p.centroid.y), (163, 303)) < 25]
     keep = unary_union([p for p in parts if not any(p is f for f in flowers)])
     fb = unary_union(flowers).bounds
-    fc = ((fb[0] + fb[2]) / 2, (fb[1] + fb[3]) / 2)
-    fr = max(fb[2] - fb[0], fb[3] - fb[1]) / 2 * 1.15
-    f6 = affinity.scale(flower6().difference(Point(0, 0).buffer(5.5)).union(Point(0, 0).buffer(2.6)), fr / 47, fr / 47, origin=(0, 0))
+    fc = ((fb[0] + fb[2]) / 2 + 6, (fb[1] + fb[3]) / 2 + 7)   # nudged off the lowest feather
+    fr = max(fb[2] - fb[0], fb[3] - fb[1]) / 2 * 1.18
+    f6 = affinity.scale(flower6(stroke=8.5), fr / 47, fr / 47, origin=(0, 0))
     g = unary_union([keep, affinity.translate(f6, *fc)])
     x0, y0, x1, y1 = g.bounds
     k = 31.0 / (y1 - y0)
@@ -46,8 +46,8 @@ def wing_left():
 
 def left_path(P, d):
     """Left inner border curve from just under the fold down towards the bottom, top -> bottom."""
-    ring = LineString(inset(P, d).exterior.coords)
-    pts = [p for p in ring.coords if p[0] < CX - 13 and p[1] > FOLD + 3.2]
+    ring = LineString(inset(P, d).exterior.coords).segmentize(.5)
+    pts = [p for p in ring.coords if p[0] < CX - 8.0 and p[1] > FOLD + 4.0]
     pts.sort(key=lambda p: ring.project(Point(p)))
     line = LineString(pts)
     if line.coords[0][1] > line.coords[-1][1]:
@@ -55,13 +55,13 @@ def left_path(P, d):
     return line
 
 
-def tribal_along(P, d=4.2, width=6.4):
+def tribal_along(P, d=4.8, width=6.4):
     """Long tribal (client reference) bent along the left border: flat side outwards."""
     t = trace("ref/tribal_long_ref.png")
     x0, y0, x1, y1 = t.bounds
     t = affinity.translate(affinity.scale(t, -1, 1, origin=(x1, 0)), -x1, -y0)   # mirror: flat side at x=0
     path = left_path(P, d)
-    L = path.length * .94
+    L = path.length * .99
     sx, sy = width / (x1 - x0), L / (y1 - y0)
     t = affinity.scale(t, sx, sy, origin=(0, 0))
 
@@ -90,15 +90,15 @@ def panel():
     g = [outline(inset(P, 1.3), .45), outline(body, .16)]
     wl = wing_left()
     g += [wl, affinity.scale(wl, xfact=-1, origin=(CX, 0))]
-    cr, ch = crown_mark(CX, CROWN_TOP, 15.6)
+    cr, ch = crown_mark(CX, CROWN_TOP, 17.6)
     g.append(cr)
-    g += [box(CX - 6.4, 24.4, CX - 1.4, 24.6), box(CX + 1.4, 24.4, CX + 6.4, 24.6),
-          Polygon([(CX, 23.6), (CX + .8, 24.5), (CX, 25.4), (CX - .8, 24.5)])]
+    g += [box(CX - 6.4, 25.6, CX - 1.4, 25.8), box(CX + 1.4, 25.6, CX + 6.4, 25.8),
+          Polygon([(CX, 24.8), (CX + .8, 25.7), (CX, 26.6), (CX - .8, 25.7)])]
     tl = tribal_along(P)
     g += [tl, affinity.scale(tl, xfact=-1, origin=(CX, 0))]
     g += [star((CX + dx, 56.6), 1.3) for dx in (-7.0, -3.5, 0, 3.5, 7.0)]
     geo = unary_union(g).intersection(inset(P, .3))
-    t0, _ = text(SANS, "PARK NARA", 1.55, CX, 29.0, .55)
+    t0, _ = text(SANS, "PARK NARA", 1.55, CX, 30.0, .55)
     t1, _ = text(SERIF_KR, "CHAMPION", 5.2, CX, 51.2, .9)
     t2, _ = text(SANS, "MADE IN KOREA", 1.9, CX, 63.4, .9)
     return geo, t0 + t1 + t2, P
